@@ -452,6 +452,21 @@ body{
   flex-shrink:0;
 }
 .q-dot.relay{background:var(--yellow)}
+.q-dot.bad  {background:var(--red)}
+/* stats row */
+.stats-row{
+  display:flex;align-items:center;gap:6px;
+  margin-top:8px;
+  opacity:0;transition:opacity .4s;
+}
+.stats-row.on{opacity:1}
+.stat-chip{
+  font-size:11px;color:var(--text3);
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--r-full);padding:3px 9px;
+  font-variant-numeric:tabular-nums;
+  transition:color .3s;
+}
 
 /* call controls */
 .call-controls{
@@ -658,7 +673,12 @@ body{
     </div>
     <div class="quality" id="quality">
       <div class="q-dot" id="q-dot"></div>
-      <span id="q-text">Direct P2P</span>
+      <span id="q-text">—</span>
+    </div>
+    <div class="stats-row" id="stats-row">
+      <div class="stat-chip" id="stat-rtt">RTT —</div>
+      <div class="stat-chip" id="stat-rx">↓ —</div>
+      <div class="stat-chip" id="stat-loss">Loss —</div>
     </div>
   </div>
 
@@ -1157,9 +1177,8 @@ function onConnected() {
   document.getElementById('call-state').textContent = 'Connected';
   document.getElementById('call-timer').classList.add('on');
   document.getElementById('wave').classList.add('on');
-  document.getElementById('quality').classList.add('on');
   startTimer();
-  pollQuality();
+  startQuality();
 }
 
 function onDisconnected() {
@@ -1168,21 +1187,101 @@ function onDisconnected() {
   show('s-home');
 }
 
-/* Quality polling — checks if TURN relay is being used */
+/* Real-time stats — reads directly from WebRTC getStats() every 2s */
+let _prevBytesRx = 0, _prevStatsTime = 0, _statsTimer = null;
+
+function startQuality() {
+  document.getElementById('stats-row').classList.add('on');
+  _prevBytesRx = 0; _prevStatsTime = 0;
+  _statsTimer = setInterval(pollQuality, 2000);
+  pollQuality(); // immediate first run
+}
+
+function stopQuality() {
+  clearInterval(_statsTimer); _statsTimer = null;
+  _prevBytesRx = 0; _prevStatsTime = 0;
+  document.getElementById('stats-row').classList.remove('on');
+  document.getElementById('quality').classList.remove('on');
+}
+
 async function pollQuality() {
   if (!peer) return;
   try {
     const stats = await peer.getStats();
-    let relay = false;
+    const now   = Date.now();
+
+    let localCand = null, remoteCand = null;
+    let rttMs     = null;
+    let bytesRx   = null;
+    let packetsLost = 0, packetsRx = 0;
+
     stats.forEach(r => {
-      if (r.type === 'remote-candidate' && r.candidateType === 'relay') relay = true;
+      // Active candidate pair — gives us RTT + byte counts
+      if (r.type === 'candidate-pair' && r.nominated && r.state === 'succeeded') {
+        localCand  = stats.get(r.localCandidateId);
+        remoteCand = stats.get(r.remoteCandidateId);
+        if (r.currentRoundTripTime != null) rttMs = Math.round(r.currentRoundTripTime * 1000);
+        if (r.bytesReceived != null) bytesRx = r.bytesReceived;
+      }
+      // Inbound audio — gives us packet loss
+      if (r.type === 'inbound-rtp' && r.kind === 'audio') {
+        packetsLost = r.packetsLost  || 0;
+        packetsRx   = r.packetsReceived || 0;
+      }
     });
+
+    // ── Connection type label ──
+    const localType  = localCand  ? localCand.candidateType  : null; // host/srflx/relay
+    const remoteType = remoteCand ? remoteCand.candidateType : null;
     const dot  = document.getElementById('q-dot');
     const text = document.getElementById('q-text');
-    dot.className    = 'q-dot' + (relay ? ' relay' : '');
-    text.textContent = relay ? 'Via TURN relay' : 'Direct P2P';
+
+    if (localType === 'relay' || remoteType === 'relay') {
+      const who = localType === 'relay' && remoteType === 'relay' ? 'Both via TURN'
+                : localType === 'relay' ? 'You via TURN' : 'Them via TURN';
+      dot.className    = 'q-dot relay';
+      text.textContent = who;
+    } else if (localType) {
+      dot.className    = 'q-dot';
+      text.textContent = 'Direct P2P';
+    }
+    document.getElementById('quality').classList.add('on');
+
+    // ── RTT ──
+    const rttEl = document.getElementById('stat-rtt');
+    if (rttMs != null) {
+      rttEl.textContent = `RTT ${rttMs}ms`;
+      rttEl.style.color = rttMs < 100 ? 'var(--green)' : rttMs < 250 ? 'var(--yellow)' : 'var(--red)';
+    } else {
+      rttEl.textContent = 'RTT —';
+      rttEl.style.color = '';
+    }
+
+    // ── Receive bitrate ──
+    const rxEl = document.getElementById('stat-rx');
+    if (bytesRx != null && _prevBytesRx > 0 && _prevStatsTime > 0) {
+      const dt      = (now - _prevStatsTime) / 1000;
+      const kbps    = Math.round(((bytesRx - _prevBytesRx) * 8) / dt / 1000);
+      rxEl.textContent = `↓ ${kbps} kbps`;
+      rxEl.style.color = kbps > 10 ? 'var(--green)' : kbps > 0 ? 'var(--yellow)' : 'var(--red)';
+    } else {
+      rxEl.textContent = '↓ —';
+      rxEl.style.color = '';
+    }
+    if (bytesRx != null) { _prevBytesRx = bytesRx; _prevStatsTime = now; }
+
+    // ── Packet loss ──
+    const lossEl  = document.getElementById('stat-loss');
+    const total   = packetsRx + packetsLost;
+    if (total > 0) {
+      const lossPct = ((packetsLost / total) * 100).toFixed(1);
+      lossEl.textContent = `Loss ${lossPct}%`;
+      lossEl.style.color = lossPct < 1 ? 'var(--green)' : lossPct < 5 ? 'var(--yellow)' : 'var(--red)';
+    } else {
+      lossEl.textContent = 'Loss —';
+      lossEl.style.color = '';
+    }
   } catch (_) {}
-  setTimeout(pollQuality, 5000);
 }
 
 /* ══ CONTROLS ════════════════════════════════════════════════════════════════ */
@@ -1235,9 +1334,9 @@ function cleanupCall() {
   document.getElementById('mute-label').textContent = 'Mute';
   document.getElementById('speaker-circle').className = 'ctrl-circle';
   document.getElementById('wave').classList.remove('on', 'live');
-  document.getElementById('quality').classList.remove('on');
   document.getElementById('call-timer').classList.remove('on');
   document.getElementById('speak-ring').classList.remove('on');
+  stopQuality();
 }
 
 /* ══ TIMER ════════════════════════════════════════════════════════════════════ */
