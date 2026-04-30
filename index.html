@@ -789,7 +789,7 @@ function toast(msg, type = '') {
 async function fetchTurn() {
   if (turnLoaded) return;
   try {
-    const res  = await fetch('/.netlify/functions/turn');
+    const res  = await fetch(SIGNAL_URL + '/turn');
     if (!res.ok) return;
     const data = await res.json();
     const list = Array.isArray(data.iceServers) ? data.iceServers : [data];
