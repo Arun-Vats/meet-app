@@ -792,18 +792,24 @@ async function fetchTurn() {
     const res  = await fetch(SIGNAL_URL + '/turn');
     if (!res.ok) return;
     const data = await res.json();
-    const list = Array.isArray(data.iceServers) ? data.iceServers : [data];
-    for (const s of list) {
-      if (s.username && s.credential) {
-        ICE.iceServers.push({
-          urls:       s.urls || 'turn:turn.cloudflare.com:3478?transport=udp',
-          username:   s.username,
-          credential: s.credential,
-        });
+
+    // Cloudflare returns: { iceServers: { urls: [...], username, credential } }
+    // Normalise into an array of server objects
+    const raw = data.iceServers || data;
+    const servers = Array.isArray(raw) ? raw : [raw];
+
+    for (const s of servers) {
+      if (!s.username || !s.credential) continue;
+      const urls = Array.isArray(s.urls) ? s.urls : [s.urls];
+      // Push each URL as a separate iceServer entry so browsers handle them correctly
+      for (const url of urls) {
+        if (url.startsWith('turn') || url.startsWith('turns')) {
+          ICE.iceServers.push({ urls: url, username: s.username, credential: s.credential });
+        }
       }
     }
     turnLoaded = true;
-    console.log('[TURN] Credentials loaded.');
+    console.log('[TURN] Loaded', ICE.iceServers.length, 'ICE servers total.');
   } catch (e) {
     console.warn('[TURN] Could not fetch — STUN only:', e.message);
   }
@@ -902,7 +908,8 @@ function initSocket(username) {
 
   sock.on('call-accepted', async ({ from, callId }) => {
     if (callId !== pendingCallId) return;
-    await startRTC(from, true /* initiator */);
+    // Small delay so callee's accept-btn handler finishes showing s-call screen
+    setTimeout(() => startRTC(from, true /* initiator */), 200);
   });
 
   sock.on('call-declined', ({ from }) => {
@@ -1038,26 +1045,9 @@ document.getElementById('cancel-btn').addEventListener('click', () => {
 });
 
 /* ══ ACCEPT / DECLINE ════════════════════════════════════════════════════════ */
-document.getElementById('accept-btn').addEventListener('click', () => {
+document.getElementById('accept-btn').addEventListener('click', async () => {
   if (!pendingCallId) return;
-  sock.emit('call-answer', { to: remoteUser, callId: pendingCallId, accepted: true });
-  document.getElementById('call-state').textContent = 'Connecting…';
-  show('s-call');
-  // WebRTC starts when rtc-offer arrives from caller
-});
-
-document.getElementById('decline-btn').addEventListener('click', () => {
-  if (pendingCallId) sock.emit('call-answer', { to: remoteUser, callId: pendingCallId, accepted: false });
-  remoteUser    = null;
-  pendingCallId = null;
-  show('s-home');
-});
-
-/* ══ WebRTC CORE ══════════════════════════════════════════════════════════════ */
-async function startRTC(peerName, asInitiator) {
-  remoteUser = peerName;
-
-  // Request microphone — best quality Opus settings
+  // Pre-fetch mic permission before sending accept so RTC starts instantly
   try {
     localStream = await navigator.mediaDevices.getUserMedia({
       audio: {
@@ -1072,9 +1062,45 @@ async function startRTC(peerName, asInitiator) {
     });
   } catch (e) {
     toast('Mic access denied — allow in browser settings.', 'error');
-    cleanupCall();
-    show('s-home');
     return;
+  }
+  sock.emit('call-answer', { to: remoteUser, callId: pendingCallId, accepted: true });
+  document.getElementById('call-state').textContent = 'Connecting…';
+  show('s-call');
+  // RTC will start when rtc-offer arrives from caller
+});
+
+document.getElementById('decline-btn').addEventListener('click', () => {
+  if (pendingCallId) sock.emit('call-answer', { to: remoteUser, callId: pendingCallId, accepted: false });
+  remoteUser    = null;
+  pendingCallId = null;
+  show('s-home');
+});
+
+/* ══ WebRTC CORE ══════════════════════════════════════════════════════════════ */
+async function startRTC(peerName, asInitiator) {
+  remoteUser = peerName;
+
+  // Request microphone — skip if callee already got it in accept-btn handler
+  if (!localStream) {
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation:  { ideal: true },
+          noiseSuppression:  { ideal: true },
+          autoGainControl:   { ideal: true },
+          sampleRate:        { ideal: 48000 },
+          channelCount:      { ideal: 1 },
+          latency:           { ideal: 0 },
+        },
+        video: false,
+      });
+    } catch (e) {
+      toast('Mic access denied — allow in browser settings.', 'error');
+      cleanupCall();
+      show('s-home');
+      return;
+    }
   }
 
   peer = new RTCPeerConnection(ICE);
