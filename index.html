@@ -726,16 +726,20 @@ body{
    ══════════════════════════════════════════════════════════════════════════ */
 const SIGNAL_URL = 'https://vocational-simone-aspandit374-66898499.koyeb.app';
 
-/* ICE config — TURN credentials injected at runtime after fetchTurn() */
+/* ICE config — TURN is last resort only, P2P strongly preferred */
 const ICE = {
   iceServers: [
+    // STUN first — used to discover public IP (srflx candidates)
     { urls: 'stun:stun.cloudflare.com:3478' },
     { urls: 'stun:stun.l.google.com:19302'  },
     { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    // TURN added later by fetchTurn() — appended last so browser tries P2P first
   ],
+  iceTransportPolicy:   'all',      // allow all candidate types
   bundlePolicy:         'max-bundle',
   rtcpMuxPolicy:        'require',
-  iceCandidatePoolSize: 0,
+  iceCandidatePoolSize: 4,          // pre-gather candidates so direct path found faster
 };
 
 /* ══ STATE ══════════════════════════════════════════════════════════════════ */
@@ -1111,9 +1115,27 @@ async function startRTC(peerName, asInitiator) {
   // Add local audio
   localStream.getAudioTracks().forEach(t => peer.addTrack(t, localStream));
 
-  // ICE candidates
+  // ICE candidates — trickle immediately, host/srflx first
+  // TURN (relay) candidates are sent last naturally since they
+  // require a round-trip to the TURN server to allocate
   peer.onicecandidate = ({ candidate }) => {
-    if (candidate) sock.emit('rtc-ice', { to: peerName, candidate: candidate.toJSON() });
+    if (!candidate) return;
+    // Send all candidate types — browser already gathers host first,
+    // then srflx, then relay. This natural order means P2P is attempted first.
+    sock.emit('rtc-ice', { to: peerName, candidate: candidate.toJSON() });
+    console.log('[ICE] Gathered:', candidate.type, candidate.protocol);
+  };
+
+  // Log when ICE gathering completes
+  peer.onicegatheringstatechange = () => {
+    console.log('[ICE] Gathering state:', peer.iceGatheringState);
+  };
+
+  // Log ICE connection state for debugging
+  peer.oniceconnectionstatechange = () => {
+    console.log('[ICE] Connection state:', peer.iceConnectionState);
+    // If ICE fails on direct path, browser automatically tries TURN
+    // We don't force anything — let ICE algorithm pick the best path
   };
 
   // Connection state
