@@ -1193,17 +1193,14 @@ function onDisconnected() {
 
 /* Real-time TURN usage — only counts bytes when relay is active */
 let _statsTimer = null;
-let _turnBytesTotal = 0; // bytes relayed via TURN this call
 
 function startQuality() {
-  _turnBytesTotal = 0;
   _statsTimer = setInterval(pollQuality, 2000);
   pollQuality();
 }
 
 function stopQuality() {
   clearInterval(_statsTimer); _statsTimer = null;
-  _turnBytesTotal = 0;
   document.getElementById('quality').classList.remove('on');
   document.getElementById('q-turn-usage').textContent = '';
 }
@@ -1214,19 +1211,20 @@ async function pollQuality() {
     const stats = await peer.getStats();
 
     let localType  = null, remoteType = null;
-    let bytesSent  = 0,    bytesRcvd  = 0;
     let usingRelay = false;
+    let audioBytesRx = 0, audioBytesTx = 0;
 
     stats.forEach(r => {
+      // Active candidate pair — tells us P2P or TURN
       if (r.type === 'candidate-pair' && r.nominated && r.state === 'succeeded') {
         const local  = stats.get(r.localCandidateId);
         const remote = stats.get(r.remoteCandidateId);
         localType  = local  ? local.candidateType  : null;
         remoteType = remote ? remote.candidateType : null;
-        // bytesSent/bytesReceived on the active pair = total relayed if using TURN
-        bytesSent = r.bytesSent     || 0;
-        bytesRcvd = r.bytesReceived || 0;
       }
+      // Actual audio bytes only — closer to what TURN counts
+      if (r.type === 'inbound-rtp'  && r.kind === 'audio') audioBytesRx = r.bytesReceived || 0;
+      if (r.type === 'outbound-rtp' && r.kind === 'audio') audioBytesTx = r.bytesSent     || 0;
     });
 
     usingRelay = localType === 'relay' || remoteType === 'relay';
@@ -1245,13 +1243,14 @@ async function pollQuality() {
     }
     document.getElementById('quality').classList.add('on');
 
-    // ─ TURN usage counter ─
+    // ─ TURN usage — audio bytes only (closer to Cloudflare's count) ─
     const usageEl = document.getElementById('q-turn-usage');
     if (usingRelay) {
-      // Total bytes going through TURN this call (sent + received)
-      const totalBytes = bytesSent + bytesRcvd;
-      _turnBytesTotal  = totalBytes; // already cumulative from getStats
-      usageEl.textContent = '· ' + fmtBytes(_turnBytesTotal) + ' relayed';
+      // Audio bytes sent + received through TURN
+      // Note: Cloudflare counts outbound bytes from their server
+      // This is the closest approximation we can get from the browser
+      const totalAudioBytes = audioBytesRx + audioBytesTx;
+      usageEl.textContent = '· ~' + fmtBytes(totalAudioBytes) + ' via TURN';
     } else {
       usageEl.textContent = '';
     }
