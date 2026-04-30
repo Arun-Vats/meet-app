@@ -453,20 +453,6 @@ body{
 }
 .q-dot.relay{background:var(--yellow)}
 .q-dot.bad  {background:var(--red)}
-/* stats row */
-.stats-row{
-  display:flex;align-items:center;gap:6px;
-  margin-top:8px;
-  opacity:0;transition:opacity .4s;
-}
-.stats-row.on{opacity:1}
-.stat-chip{
-  font-size:11px;color:var(--text3);
-  background:var(--surface2);border:1px solid var(--border);
-  border-radius:var(--r-full);padding:3px 9px;
-  font-variant-numeric:tabular-nums;
-  transition:color .3s;
-}
 
 /* call controls */
 .call-controls{
@@ -674,11 +660,7 @@ body{
     <div class="quality" id="quality">
       <div class="q-dot" id="q-dot"></div>
       <span id="q-text">—</span>
-    </div>
-    <div class="stats-row" id="stats-row">
-      <div class="stat-chip" id="stat-rtt">RTT —</div>
-      <div class="stat-chip" id="stat-rx">↓ —</div>
-      <div class="stat-chip" id="stat-loss">Loss —</div>
+      <span id="q-turn-usage" style="margin-left:8px;color:var(--text3)"></span>
     </div>
   </div>
 
@@ -1187,56 +1169,50 @@ function onDisconnected() {
   show('s-home');
 }
 
-/* Real-time stats — reads directly from WebRTC getStats() every 2s */
-let _prevBytesRx = 0, _prevStatsTime = 0, _statsTimer = null;
+/* Real-time TURN usage — only counts bytes when relay is active */
+let _statsTimer = null;
+let _turnBytesTotal = 0; // bytes relayed via TURN this call
 
 function startQuality() {
-  document.getElementById('stats-row').classList.add('on');
-  _prevBytesRx = 0; _prevStatsTime = 0;
+  _turnBytesTotal = 0;
   _statsTimer = setInterval(pollQuality, 2000);
-  pollQuality(); // immediate first run
+  pollQuality();
 }
 
 function stopQuality() {
   clearInterval(_statsTimer); _statsTimer = null;
-  _prevBytesRx = 0; _prevStatsTime = 0;
-  document.getElementById('stats-row').classList.remove('on');
+  _turnBytesTotal = 0;
   document.getElementById('quality').classList.remove('on');
+  document.getElementById('q-turn-usage').textContent = '';
 }
 
 async function pollQuality() {
   if (!peer) return;
   try {
     const stats = await peer.getStats();
-    const now   = Date.now();
 
-    let localCand = null, remoteCand = null;
-    let rttMs     = null;
-    let bytesRx   = null;
-    let packetsLost = 0, packetsRx = 0;
+    let localType  = null, remoteType = null;
+    let bytesSent  = 0,    bytesRcvd  = 0;
+    let usingRelay = false;
 
     stats.forEach(r => {
-      // Active candidate pair — gives us RTT + byte counts
       if (r.type === 'candidate-pair' && r.nominated && r.state === 'succeeded') {
-        localCand  = stats.get(r.localCandidateId);
-        remoteCand = stats.get(r.remoteCandidateId);
-        if (r.currentRoundTripTime != null) rttMs = Math.round(r.currentRoundTripTime * 1000);
-        if (r.bytesReceived != null) bytesRx = r.bytesReceived;
-      }
-      // Inbound audio — gives us packet loss
-      if (r.type === 'inbound-rtp' && r.kind === 'audio') {
-        packetsLost = r.packetsLost  || 0;
-        packetsRx   = r.packetsReceived || 0;
+        const local  = stats.get(r.localCandidateId);
+        const remote = stats.get(r.remoteCandidateId);
+        localType  = local  ? local.candidateType  : null;
+        remoteType = remote ? remote.candidateType : null;
+        // bytesSent/bytesReceived on the active pair = total relayed if using TURN
+        bytesSent = r.bytesSent     || 0;
+        bytesRcvd = r.bytesReceived || 0;
       }
     });
 
-    // ── Connection type label ──
-    const localType  = localCand  ? localCand.candidateType  : null; // host/srflx/relay
-    const remoteType = remoteCand ? remoteCand.candidateType : null;
+    usingRelay = localType === 'relay' || remoteType === 'relay';
+
+    // ─ Connection label ─
     const dot  = document.getElementById('q-dot');
     const text = document.getElementById('q-text');
-
-    if (localType === 'relay' || remoteType === 'relay') {
+    if (usingRelay) {
       const who = localType === 'relay' && remoteType === 'relay' ? 'Both via TURN'
                 : localType === 'relay' ? 'You via TURN' : 'Them via TURN';
       dot.className    = 'q-dot relay';
@@ -1247,41 +1223,23 @@ async function pollQuality() {
     }
     document.getElementById('quality').classList.add('on');
 
-    // ── RTT ──
-    const rttEl = document.getElementById('stat-rtt');
-    if (rttMs != null) {
-      rttEl.textContent = `RTT ${rttMs}ms`;
-      rttEl.style.color = rttMs < 100 ? 'var(--green)' : rttMs < 250 ? 'var(--yellow)' : 'var(--red)';
+    // ─ TURN usage counter ─
+    const usageEl = document.getElementById('q-turn-usage');
+    if (usingRelay) {
+      // Total bytes going through TURN this call (sent + received)
+      const totalBytes = bytesSent + bytesRcvd;
+      _turnBytesTotal  = totalBytes; // already cumulative from getStats
+      usageEl.textContent = '· ' + fmtBytes(_turnBytesTotal) + ' relayed';
     } else {
-      rttEl.textContent = 'RTT —';
-      rttEl.style.color = '';
-    }
-
-    // ── Receive bitrate ──
-    const rxEl = document.getElementById('stat-rx');
-    if (bytesRx != null && _prevBytesRx > 0 && _prevStatsTime > 0) {
-      const dt      = (now - _prevStatsTime) / 1000;
-      const kbps    = Math.round(((bytesRx - _prevBytesRx) * 8) / dt / 1000);
-      rxEl.textContent = `↓ ${kbps} kbps`;
-      rxEl.style.color = kbps > 10 ? 'var(--green)' : kbps > 0 ? 'var(--yellow)' : 'var(--red)';
-    } else {
-      rxEl.textContent = '↓ —';
-      rxEl.style.color = '';
-    }
-    if (bytesRx != null) { _prevBytesRx = bytesRx; _prevStatsTime = now; }
-
-    // ── Packet loss ──
-    const lossEl  = document.getElementById('stat-loss');
-    const total   = packetsRx + packetsLost;
-    if (total > 0) {
-      const lossPct = ((packetsLost / total) * 100).toFixed(1);
-      lossEl.textContent = `Loss ${lossPct}%`;
-      lossEl.style.color = lossPct < 1 ? 'var(--green)' : lossPct < 5 ? 'var(--yellow)' : 'var(--red)';
-    } else {
-      lossEl.textContent = 'Loss —';
-      lossEl.style.color = '';
+      usageEl.textContent = '';
     }
   } catch (_) {}
+}
+
+function fmtBytes(b) {
+  if (b < 1024)          return b + ' B';
+  if (b < 1024 * 1024)   return (b / 1024).toFixed(1) + ' KB';
+  return (b / (1024 * 1024)).toFixed(2) + ' MB';
 }
 
 /* ══ CONTROLS ════════════════════════════════════════════════════════════════ */
