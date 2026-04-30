@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="theme-color" content="#0a0a0f"/>
+<title>VoiceLink</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+/* ─── RESET ──────────────────────────────────────────────────────────────── */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;height:100dvh;overflow:hidden;-webkit-font-smoothing:antialiased}
+
+/* ─── TOKENS ─────────────────────────────────────────────────────────────── */
+:root{
+  --safe-t:env(safe-area-inset-top,0px);
+  --safe-b:env(safe-area-inset-bottom,0px);
+  --safe-l:env(safe-area-inset-left,0px);
+  --safe-r:env(safe-area-inset-right,0px);
+
+  --bg:        #0a0a0f;
+  --surface:   #13131a;
+  --surface2:  #1c1c28;
+  --surface3:  #242434;
+  --border:    rgba(255,255,255,0.07);
+  --border2:   rgba(255,255,255,0.12);
+  --border3:   rgba(255,255,255,0.18);
+  --text:      #f0f0f8;
+  --text2:     #8080a0;
+  --text3:     #48485e;
+  --accent:    #5b9cf6;
+  --accent2:   #7b6cf6;
+  --adim:      rgba(91,156,246,0.14);
+  --green:     #32d583;
+  --gdim:      rgba(50,213,131,0.14);
+  --red:       #f2534a;
+  --rdim:      rgba(242,83,74,0.14);
+  --yellow:    #ffc940;
+  --ydim:      rgba(255,201,64,0.14);
+
+  --font:'Outfit',sans-serif;
+  --r-sm:8px;
+  --r-md:14px;
+  --r-lg:20px;
+  --r-xl:28px;
+  --r-full:9999px;
+}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font);
+}
+
+/* ─── SCREEN SYSTEM ──────────────────────────────────────────────────────── */
+.screen{
+  position:fixed;inset:0;
+  display:flex;flex-direction:column;
+  padding:var(--safe-t) var(--safe-r) var(--safe-b) var(--safe-l);
+  opacity:0;pointer-events:none;
+  transition:opacity .28s ease,transform .28s ease;
+  will-change:transform,opacity;
+}
+.screen.active{opacity:1;pointer-events:auto;transform:none!important}
+.from-bottom{transform:translateY(48px)}
+.from-top   {transform:translateY(-48px)}
+
+/* ─── REGISTER ───────────────────────────────────────────────────────────── */
+#s-register{
+  align-items:center;justify-content:center;
+  gap:0;padding:40px 28px;
+  background:var(--bg);
+}
+.logo-mark{
+  width:72px;height:72px;border-radius:22px;
+  background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 100%);
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:32px;
+  box-shadow:0 16px 48px rgba(91,156,246,.32);
+}
+.logo-mark svg{width:34px;height:34px}
+.reg-title{
+  font-size:32px;font-weight:700;letter-spacing:-.05em;
+  margin-bottom:10px;text-align:center;
+}
+.reg-sub{
+  font-size:15px;color:var(--text2);text-align:center;
+  line-height:1.55;max-width:256px;margin-bottom:48px;
+}
+
+.field{width:100%;max-width:312px;margin-bottom:10px;position:relative}
+.field input{
+  width:100%;background:var(--surface);
+  border:1.5px solid var(--border2);
+  border-radius:var(--r-md);
+  padding:15px 18px;
+  font-family:var(--font);font-size:17px;font-weight:400;
+  color:var(--text);outline:none;
+  transition:border-color .18s,box-shadow .18s;
+  letter-spacing:-.01em;
+}
+.field input::placeholder{color:var(--text3)}
+.field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--adim)}
+.field input.err{border-color:var(--red)}
+.field input.err:focus{box-shadow:0 0 0 3px var(--rdim)}
+
+.hint{
+  font-size:12px;color:var(--text3);
+  text-align:center;margin-bottom:20px;
+  max-width:312px;transition:color .18s;
+}
+.hint.err{color:var(--red)}
+
+.btn{
+  width:100%;max-width:312px;
+  background:var(--accent);color:#fff;
+  border:none;border-radius:var(--r-md);
+  padding:16px;
+  font-family:var(--font);font-size:17px;font-weight:600;
+  cursor:pointer;letter-spacing:-.01em;
+  transition:opacity .15s,transform .12s;
+}
+.btn:hover{opacity:.9}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+
+/* ─── HOME ───────────────────────────────────────────────────────────────── */
+#s-home{background:var(--bg)}
+
+.home-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 22px 10px;flex-shrink:0;
+}
+.home-name{
+  font-size:22px;font-weight:700;letter-spacing:-.04em;
+}
+.home-name span{color:var(--accent)}
+.status-badge{
+  display:flex;align-items:center;gap:6px;
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:var(--r-full);padding:6px 13px;
+  font-size:12px;font-weight:500;color:var(--text2);
+}
+.status-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--green);
+  animation:dot-breathe 2.8s ease-in-out infinite;
+}
+@keyframes dot-breathe{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.7)}}
+
+/* dial area */
+.dial-area{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:20px 24px;gap:18px;
+}
+.dial-eyebrow{
+  font-size:11px;font-weight:600;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.14em;
+}
+.dial-wrap{width:100%;max-width:340px;position:relative}
+.dial-wrap input{
+  width:100%;background:var(--surface);
+  border:1.5px solid var(--border2);
+  border-radius:var(--r-xl);
+  padding:17px 62px 17px 22px;
+  font-family:var(--font);font-size:19px;font-weight:400;
+  color:var(--text);outline:none;
+  transition:border-color .18s,box-shadow .18s;
+  letter-spacing:-.015em;
+}
+.dial-wrap input::placeholder{color:var(--text3);font-size:16px}
+.dial-wrap input:focus{border-color:var(--border3)}
+.call-btn{
+  position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  width:44px;height:44px;border-radius:50%;
+  background:var(--green);border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 18px rgba(50,213,131,.38);
+  transition:transform .12s,opacity .15s;
+}
+.call-btn:hover{opacity:.88}
+.call-btn:active{transform:translateY(-50%) scale(.89)}
+.call-btn:disabled{background:var(--surface3);box-shadow:none;cursor:not-allowed}
+.call-btn svg{width:20px;height:20px}
+
+/* online list */
+.online-area{
+  padding:0 22px 24px;flex-shrink:0;
+}
+.online-row{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:11px;
+}
+.online-label{
+  font-size:11px;font-weight:600;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.12em;
+}
+.online-pill{
+  font-size:11px;color:var(--text3);
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-full);padding:2px 9px;
+}
+.chip-list{
+  display:flex;flex-wrap:wrap;gap:7px;
+  max-height:88px;overflow-y:auto;
+}
+.chip{
+  display:flex;align-items:center;gap:6px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-full);padding:6px 12px 6px 7px;
+  cursor:pointer;transition:border-color .15s,background .15s;
+}
+.chip:hover{border-color:var(--accent);background:var(--adim)}
+.chip:active{transform:scale(.95)}
+.chip-av{
+  width:24px;height:24px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;color:#fff;
+  flex-shrink:0;
+}
+.chip-name{font-size:13px;color:var(--text);font-weight:400}
+.no-one{font-size:13px;color:var(--text3);padding:4px 0}
+
+/* ─── CALLING SCREEN (outbound) ─────────────────────────────────────────── */
+#s-calling{
+  background:var(--bg);
+  align-items:center;justify-content:space-between;
+}
+.calling-body{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:24px 32px;gap:0;
+}
+.pulse-wrap{
+  position:relative;width:116px;height:116px;
+  margin-bottom:36px;
+}
+.pulse-ring{
+  position:absolute;border-radius:50%;
+  border:1.5px solid rgba(91,156,246,.28);
+  animation:pulse-out 2.2s ease-out infinite;
+}
+.pulse-ring:nth-child(1){inset:-14px;animation-delay:0s}
+.pulse-ring:nth-child(2){inset:-28px;border-color:rgba(91,156,246,.14);animation-delay:.7s}
+.pulse-ring:nth-child(3){inset:-44px;border-color:rgba(91,156,246,.07);animation-delay:1.4s}
+@keyframes pulse-out{
+  0%{transform:scale(.92);opacity:1}
+  100%{transform:scale(1.12);opacity:0}
+}
+.calling-av{
+  width:116px;height:116px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:48px;font-weight:700;color:#fff;
+  font-family:var(--font);position:relative;z-index:1;
+}
+.calling-name{
+  font-size:34px;font-weight:700;letter-spacing:-.05em;
+  margin-bottom:10px;text-align:center;
+}
+.calling-status{
+  font-size:16px;color:var(--text2);
+  display:flex;align-items:center;gap:2px;
+}
+.ldots span{
+  display:inline-block;
+  animation:ldot 1.5s ease-in-out infinite;
+}
+.ldots span:nth-child(2){animation-delay:.18s}
+.ldots span:nth-child(3){animation-delay:.36s}
+@keyframes ldot{0%,80%,100%{opacity:.2}40%{opacity:1}}
+
+.cancel-area{
+  width:100%;display:flex;align-items:center;justify-content:center;
+  padding-bottom:52px;flex-shrink:0;
+}
+.end-circle{
+  width:70px;height:70px;border-radius:50%;
+  background:var(--red);border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 8px 28px rgba(242,83,74,.42);
+  transition:transform .12s,opacity .15s;
+}
+.end-circle:active{transform:scale(.9)}
+.end-circle svg{width:28px;height:28px}
+
+/* ─── INCOMING CALL ───────────────────────────────────────────────────────── */
+#s-incoming{
+  background:transparent;
+  justify-content:flex-end;
+}
+.incoming-blur{
+  position:fixed;inset:0;
+  background:linear-gradient(180deg,rgba(8,8,18,.94) 0%,rgba(8,8,18,.99) 100%);
+  backdrop-filter:blur(40px) saturate(1.6);
+  -webkit-backdrop-filter:blur(40px) saturate(1.6);
+}
+.incoming-body{
+  position:relative;z-index:1;
+  width:100%;padding:44px 32px;
+  padding-bottom:calc(44px + var(--safe-b));
+  display:flex;flex-direction:column;align-items:center;gap:0;
+}
+.ring-av-wrap{
+  width:104px;height:104px;border-radius:50%;
+  position:relative;margin-bottom:24px;
+}
+.ring-av-wrap::before,.ring-av-wrap::after{
+  content:'';position:absolute;border-radius:50%;
+  border:1.5px solid rgba(255,255,255,.14);
+  animation:ring-grow 2.6s ease-out infinite;
+}
+.ring-av-wrap::before{inset:-12px}
+.ring-av-wrap::after{inset:-26px;border-color:rgba(255,255,255,.07);animation-delay:.9s}
+@keyframes ring-grow{
+  0%{transform:scale(1);opacity:1}
+  100%{transform:scale(1.65);opacity:0}
+}
+.ring-av{
+  width:100%;height:100%;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:42px;font-weight:700;color:#fff;
+  font-family:var(--font);
+}
+.inc-label{font-size:14px;color:var(--text2);margin-bottom:8px}
+.inc-name{
+  font-size:36px;font-weight:700;letter-spacing:-.05em;
+  margin-bottom:6px;text-align:center;
+}
+.inc-sub{font-size:15px;color:var(--text2);margin-bottom:56px}
+.inc-actions{
+  display:flex;align-items:center;justify-content:center;gap:60px;width:100%;
+}
+.inc-btn{
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  background:none;border:none;cursor:pointer;
+  transition:transform .14s;
+}
+.inc-btn:active{transform:scale(.91)}
+.inc-circle{
+  width:70px;height:70px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  transition:opacity .15s;
+}
+.inc-circle:hover{opacity:.88}
+.inc-btn.decline .inc-circle{background:var(--red);box-shadow:0 8px 26px rgba(242,83,74,.48)}
+.inc-btn.accept  .inc-circle{background:var(--green);box-shadow:0 8px 26px rgba(50,213,131,.48)}
+.inc-btn.accept .inc-circle svg{animation:wiggle 1.3s ease-in-out infinite}
+@keyframes wiggle{
+  0%,100%{transform:rotate(0)}
+  20%{transform:rotate(14deg)}
+  40%{transform:rotate(-10deg)}
+  60%{transform:rotate(7deg)}
+  80%{transform:rotate(-4deg)}
+}
+.inc-btn-label{font-size:13px;color:var(--text2);font-weight:400}
+
+/* ─── ACTIVE CALL ─────────────────────────────────────────────────────────── */
+#s-call{
+  background:var(--bg);
+  align-items:center;justify-content:space-between;
+}
+.call-topbar{
+  width:100%;display:flex;align-items:center;justify-content:center;
+  padding:16px 24px 0;flex-shrink:0;
+}
+.timer-pill{
+  background:var(--green);color:#fff;
+  font-size:13px;font-weight:700;
+  border-radius:var(--r-full);padding:5px 16px;
+  letter-spacing:.05em;font-variant-numeric:tabular-nums;
+  opacity:0;transition:opacity .4s;
+}
+.timer-pill.on{opacity:1}
+
+.call-body{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:16px 28px;gap:0;
+}
+.call-av-wrap{
+  position:relative;width:128px;height:128px;
+  margin-bottom:30px;
+}
+.call-av-glow{
+  position:absolute;inset:-28px;border-radius:50%;
+  background:radial-gradient(circle,rgba(91,156,246,.12) 0%,transparent 68%);
+  animation:glow-breath 3.2s ease-in-out infinite;
+}
+@keyframes glow-breath{
+  0%,100%{transform:scale(1);opacity:.8}
+  50%{transform:scale(1.18);opacity:.3}
+}
+.call-av{
+  width:128px;height:128px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:54px;font-weight:700;color:#fff;
+  font-family:var(--font);position:relative;z-index:1;
+}
+.speak-ring{
+  position:absolute;inset:-5px;border-radius:50%;
+  border:2.5px solid var(--green);
+  box-shadow:0 0 20px rgba(50,213,131,.38);
+  opacity:0;transition:opacity .22s;
+  pointer-events:none;
+}
+.speak-ring.on{opacity:1}
+
+.call-name{
+  font-size:30px;font-weight:700;letter-spacing:-.05em;
+  margin-bottom:10px;text-align:center;
+}
+.call-state{
+  font-size:15px;color:var(--text2);
+  min-height:22px;text-align:center;transition:opacity .3s;
+}
+
+/* wave */
+.wave{
+  display:flex;align-items:center;gap:3px;
+  height:26px;margin-top:22px;
+  opacity:0;transition:opacity .35s;
+}
+.wave.on{opacity:1}
+.wbar{
+  width:3px;border-radius:2px;
+  background:var(--green);height:4px;
+  transition:height .08s ease;
+}
+.wave:not(.live) .wbar{animation:wave-idle 1.4s ease-in-out infinite}
+.wave:not(.live) .wbar:nth-child(2){animation-delay:.12s}
+.wave:not(.live) .wbar:nth-child(3){animation-delay:.24s}
+.wave:not(.live) .wbar:nth-child(4){animation-delay:.36s}
+.wave:not(.live) .wbar:nth-child(5){animation-delay:.24s}
+.wave:not(.live) .wbar:nth-child(6){animation-delay:.12s}
+.wave:not(.live) .wbar:nth-child(7){animation-delay:.06s}
+@keyframes wave-idle{0%,100%{height:4px}50%{height:15px}}
+
+/* quality */
+.quality{
+  display:flex;align-items:center;gap:7px;
+  margin-top:16px;font-size:12px;color:var(--text3);
+  opacity:0;transition:opacity .4s;
+}
+.quality.on{opacity:1}
+.q-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--green);transition:background .4s;
+  flex-shrink:0;
+}
+.q-dot.relay{background:var(--yellow)}
+
+/* call controls */
+.call-controls{
+  width:100%;
+  display:flex;flex-direction:column;align-items:center;
+  gap:28px;padding:0 28px;
+  padding-bottom:calc(38px + var(--safe-b));
+  flex-shrink:0;
+}
+.ctrl-row{
+  display:flex;align-items:center;justify-content:center;gap:28px;
+}
+.ctrl{
+  display:flex;flex-direction:column;align-items:center;gap:9px;
+  background:none;border:none;cursor:pointer;
+  transition:transform .12s;
+}
+.ctrl:active{transform:scale(.88)}
+.ctrl-circle{
+  width:58px;height:58px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--surface2);border:1px solid var(--border2);
+  transition:background .18s,border-color .18s;
+  color:var(--text);
+}
+.ctrl-circle.active{background:var(--adim);border-color:var(--accent)}
+.ctrl-circle.muted {background:var(--rdim);border-color:var(--red);color:var(--red)}
+.ctrl-label{font-size:11px;color:var(--text3);font-weight:400;text-align:center}
+.ctrl-end{
+  width:74px;height:74px;border-radius:50%;
+  background:var(--red);border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 8px 30px rgba(242,83,74,.44);
+  transition:transform .12s,opacity .15s;
+}
+.ctrl-end:hover{opacity:.9}
+.ctrl-end:active{transform:scale(.9)}
+
+/* ─── TOAST ──────────────────────────────────────────────────────────────── */
+.toast{
+  position:fixed;bottom:calc(28px + var(--safe-b));left:50%;
+  transform:translateX(-50%) translateY(18px);
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:var(--r-md);padding:11px 20px;
+  font-size:14px;color:var(--text);white-space:nowrap;
+  opacity:0;pointer-events:none;z-index:9999;
+  transition:opacity .22s,transform .22s;
+  box-shadow:0 8px 32px rgba(0,0,0,.5);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.terror{border-color:var(--red)}
+.toast.tok   {border-color:var(--green)}
+
+/* ─── AVATAR PALETTE ─────────────────────────────────────────────────────── */
+.av0{background:linear-gradient(135deg,#5b9cf6,#7b6cf6)}
+.av1{background:linear-gradient(135deg,#32d583,#00c3ff)}
+.av2{background:linear-gradient(135deg,#ffc940,#ff7830)}
+.av3{background:linear-gradient(135deg,#f2534a,#f72585)}
+.av4{background:linear-gradient(135deg,#c084fc,#7c3aed)}
+.av5{background:linear-gradient(135deg,#67e8f9,#0ea5e9)}
+</style>
+</head>
+<body>
+
+<!-- ══ REGISTER SCREEN ══════════════════════════════════════════════════════ -->
+<div class="screen active" id="s-register">
+  <div class="logo-mark">
+    <svg viewBox="0 0 34 34" fill="none">
+      <path d="M9 22c0-4.4 3.6-8 8-8s8 3.6 8 8" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+      <circle cx="17" cy="11" r="4.5" stroke="#fff" stroke-width="2.2"/>
+    </svg>
+  </div>
+  <div class="reg-title">VoiceLink</div>
+  <div class="reg-sub">Choose a username to start making free, private voice calls.</div>
+  <div class="field">
+    <input type="text" id="un-input" placeholder="username"
+           maxlength="24" autocomplete="off" autocapitalize="none" spellcheck="false"/>
+  </div>
+  <div class="hint" id="reg-hint">2–24 chars · letters, numbers, _ . -</div>
+  <button class="btn" id="reg-btn" disabled>Let's go</button>
+</div>
+
+<!-- ══ HOME SCREEN ══════════════════════════════════════════════════════════ -->
+<div class="screen from-bottom" id="s-home">
+  <div class="home-bar">
+    <div class="home-name">Hey, <span id="my-name">—</span></div>
+    <div class="status-badge">
+      <div class="status-dot" id="conn-dot"></div>
+      <span id="conn-text">Online</span>
+    </div>
+  </div>
+
+  <div class="dial-area">
+    <div class="dial-eyebrow">Start a call</div>
+    <div class="dial-wrap">
+      <input type="text" id="dial-input" placeholder="enter username"
+             maxlength="24" autocomplete="off" autocapitalize="none" spellcheck="false"/>
+      <button class="call-btn" id="dial-btn" disabled title="Call">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07
+                   19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3
+                   a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91
+                   a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7
+                   A2 2 0 0 1 22 16.92z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="online-area">
+    <div class="online-row">
+      <div class="online-label">Online now</div>
+      <div class="online-pill" id="online-count">0</div>
+    </div>
+    <div class="chip-list" id="chip-list">
+      <div class="no-one" id="no-one">No one else online yet.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CALLING SCREEN ═══════════════════════════════════════════════════════ -->
+<div class="screen from-bottom" id="s-calling">
+  <div style="height:calc(var(--safe-t) + 24px);flex-shrink:0"></div>
+  <div class="calling-body">
+    <div class="pulse-wrap">
+      <div class="pulse-ring"></div>
+      <div class="pulse-ring"></div>
+      <div class="pulse-ring"></div>
+      <div class="calling-av" id="calling-av"></div>
+    </div>
+    <div class="calling-name" id="calling-name">—</div>
+    <div class="calling-status">
+      Calling<span class="ldots"><span>.</span><span>.</span><span>.</span></span>
+    </div>
+  </div>
+  <div class="cancel-area">
+    <button class="end-circle" id="cancel-btn" title="Cancel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"/>
+        <line x1="6"  y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<!-- ══ INCOMING CALL ════════════════════════════════════════════════════════ -->
+<div class="screen from-bottom" id="s-incoming">
+  <div class="incoming-blur"></div>
+  <div class="incoming-body">
+    <div class="ring-av-wrap">
+      <div class="ring-av" id="inc-av"></div>
+    </div>
+    <div class="inc-label">Incoming voice call</div>
+    <div class="inc-name"  id="inc-name">—</div>
+    <div class="inc-sub">VoiceLink</div>
+    <div class="inc-actions">
+      <button class="inc-btn decline" id="decline-btn">
+        <div class="inc-circle">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+               stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6"  y1="6" x2="18" y2="18"/>
+          </svg>
+        </div>
+        <span class="inc-btn-label">Decline</span>
+      </button>
+      <button class="inc-btn accept" id="accept-btn">
+        <div class="inc-circle">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+               stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07
+                     19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3
+                     a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91
+                     a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7
+                     A2 2 0 0 1 22 16.92z"/>
+          </svg>
+        </div>
+        <span class="inc-btn-label">Accept</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ACTIVE CALL ══════════════════════════════════════════════════════════ -->
+<div class="screen from-bottom" id="s-call">
+  <div class="call-topbar">
+    <div class="timer-pill" id="call-timer">0:00</div>
+  </div>
+
+  <div class="call-body">
+    <div class="call-av-wrap">
+      <div class="call-av-glow"></div>
+      <div class="call-av"   id="call-av"></div>
+      <div class="speak-ring" id="speak-ring"></div>
+    </div>
+    <div class="call-name"  id="call-name">—</div>
+    <div class="call-state" id="call-state">Connecting…</div>
+    <div class="wave"       id="wave">
+      <div class="wbar"></div><div class="wbar"></div><div class="wbar"></div>
+      <div class="wbar"></div><div class="wbar"></div><div class="wbar"></div>
+      <div class="wbar"></div>
+    </div>
+    <div class="quality" id="quality">
+      <div class="q-dot" id="q-dot"></div>
+      <span id="q-text">Direct P2P</span>
+    </div>
+  </div>
+
+  <div class="call-controls">
+    <div class="ctrl-row">
+      <!-- Mute -->
+      <button class="ctrl" id="mute-btn">
+        <div class="ctrl-circle" id="mute-circle">
+          <svg id="mute-icon" width="22" height="22" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8"  y1="23" x2="16" y2="23"/>
+          </svg>
+        </div>
+        <span class="ctrl-label" id="mute-label">Mute</span>
+      </button>
+
+      <!-- End -->
+      <button class="ctrl-end" id="end-btn" title="End call">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+             stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45
+                   12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2
+                   19.79 19.79 0 0 1-8.63-3.07A19.42 19.42 0 0 1 3.08 12.7
+                   2 2 0 0 1 4.35 10.1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81
+                   2 2 0 0 1-.45 2.11L7.33 7.9"/>
+          <line x1="1" y1="1" x2="23" y2="23"/>
+        </svg>
+      </button>
+
+      <!-- Speaker -->
+      <button class="ctrl" id="speaker-btn">
+        <div class="ctrl-circle" id="speaker-circle">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+          </svg>
+        </div>
+        <span class="ctrl-label">Speaker</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- hidden audio for remote stream -->
+<audio id="remote-audio" autoplay playsinline></audio>
+
+<!-- toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Socket.io -->
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+<script>
+'use strict';
+
+/* ══ CONFIG ══════════════════════════════════════════════════════════════════
+   Replace SIGNAL_URL with your actual Koyeb deployment URL.
+   It looks like: https://your-app-name-xxxx.koyeb.app
+   ══════════════════════════════════════════════════════════════════════════ */
+const SIGNAL_URL = 'https://prime-keeley-aspandit374-376d048e.koyeb.app';
+
+/* ICE config — TURN credentials injected at runtime after fetchTurn() */
+const ICE = {
+  iceServers: [
+    { urls: 'stun:stun.cloudflare.com:3478' },
+    { urls: 'stun:stun.l.google.com:19302'  },
+    { urls: 'stun:stun1.l.google.com:19302' },
+  ],
+  bundlePolicy:         'max-bundle',
+  rtcpMuxPolicy:        'require',
+  iceCandidatePoolSize: 0,
+};
+
+/* ══ STATE ══════════════════════════════════════════════════════════════════ */
+let sock           = null;
+let myName         = null;
+let peer           = null;   // RTCPeerConnection
+let localStream    = null;
+let remoteUser     = null;
+let pendingCallId  = null;
+let isMuted        = false;
+let isSpeaker      = false;
+let timerID        = null;
+let timerSecs      = 0;
+let audioCtx       = null;
+let analyser       = null;
+let rafID          = null;
+let iceBuffer      = [];     // ICE candidates buffered before remote desc
+let turnLoaded     = false;
+
+/* ══ AVATAR HELPERS ══════════════════════════════════════════════════════════ */
+function avColor(name) {
+  let h = 0;
+  for (const c of name) h = c.charCodeAt(0) + ((h << 5) - h);
+  return 'av' + (Math.abs(h) % 6);
+}
+function avInitial(name) { return name[0].toUpperCase(); }
+function setAv(el, name) {
+  el.textContent = avInitial(name);
+  el.className   = el.className.replace(/\bav\d\b/g, '').trim() + ' ' + avColor(name);
+}
+
+/* ══ SCREEN TRANSITIONS ══════════════════════════════════════════════════════ */
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active');
+  });
+  const el = document.getElementById(id);
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('active')));
+}
+
+/* ══ TOAST ════════════════════════════════════════════════════════════════════ */
+let toastT = null;
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className   = 'toast' + (type ? ' t' + type : '');
+  clearTimeout(toastT);
+  requestAnimationFrame(() => el.classList.add('show'));
+  toastT = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+/* ══ TURN CREDENTIALS ════════════════════════════════════════════════════════ */
+async function fetchTurn() {
+  if (turnLoaded) return;
+  try {
+    const res  = await fetch('/.netlify/functions/turn');
+    if (!res.ok) return;
+    const data = await res.json();
+    const list = Array.isArray(data.iceServers) ? data.iceServers : [data];
+    for (const s of list) {
+      if (s.username && s.credential) {
+        ICE.iceServers.push({
+          urls:       s.urls || 'turn:turn.cloudflare.com:3478?transport=udp',
+          username:   s.username,
+          credential: s.credential,
+        });
+      }
+    }
+    turnLoaded = true;
+    console.log('[TURN] Credentials loaded.');
+  } catch (e) {
+    console.warn('[TURN] Could not fetch — STUN only:', e.message);
+  }
+}
+
+/* ══ REGISTER UI ══════════════════════════════════════════════════════════════ */
+const UN_RE = /^[a-z0-9._-]{2,24}$/;
+
+const unInput = document.getElementById('un-input');
+const regBtn  = document.getElementById('reg-btn');
+const regHint = document.getElementById('reg-hint');
+
+unInput.addEventListener('input', () => {
+  const v = unInput.value.toLowerCase().trim();
+  regBtn.disabled = !UN_RE.test(v);
+  unInput.classList.remove('err');
+  regHint.className   = 'hint';
+  regHint.textContent = '2–24 chars · letters, numbers, _ . -';
+});
+unInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !regBtn.disabled) doRegister(); });
+regBtn.addEventListener('click', doRegister);
+
+function doRegister() {
+  const name = unInput.value.toLowerCase().trim();
+  if (!UN_RE.test(name)) return;
+  regBtn.disabled    = true;
+  regBtn.textContent = 'Connecting…';
+  initSocket(name);
+}
+
+function regError(msg) {
+  regHint.className   = 'hint err';
+  regHint.textContent = msg;
+  unInput.classList.add('err');
+  regBtn.disabled     = false;
+  regBtn.textContent  = "Let's go";
+}
+
+/* ══ SOCKET ══════════════════════════════════════════════════════════════════ */
+function initSocket(username) {
+  sock = io(SIGNAL_URL, {
+    transports:          ['websocket'],
+    reconnection:        true,
+    reconnectionAttempts:12,
+    reconnectionDelay:   2000,
+  });
+
+  sock.on('connect', () => {
+    console.log('[Socket] Connected:', sock.id);
+    sock.emit('register', { username });
+  });
+
+  sock.on('registered', ({ username: name }) => {
+    myName = name;
+    document.getElementById('my-name').textContent = name;
+    setConnected(true);
+    fetchTurn();
+    setupHomeUI();
+    show('s-home');
+  });
+
+  sock.on('username-taken',   ({ msg }) => regError(msg));
+  sock.on('username-invalid', ({ msg }) => regError(msg));
+
+  sock.on('disconnect', () => setConnected(false));
+  sock.on('reconnect',  () => {
+    setConnected(true);
+    sock.emit('register', { username: myName });
+  });
+
+  /* ── Presence ── */
+  sock.on('presence', ({ type, username: u }) => {
+    if (type === 'online'  && u !== myName) onlineSet.add(u);
+    if (type === 'offline') onlineSet.delete(u);
+    renderChips();
+    document.getElementById('online-count').textContent = onlineSet.size;
+  });
+
+  /* ── Incoming call ── */
+  sock.on('incoming-call', ({ from, callId }) => {
+    if (peer) {
+      // Already in a call — auto-decline
+      sock.emit('call-answer', { to: from, callId, accepted: false });
+      return;
+    }
+    remoteUser    = from;
+    pendingCallId = callId;
+    setAv(document.getElementById('inc-av'),   from);
+    setAv(document.getElementById('call-av'),  from);
+    document.getElementById('inc-name').textContent  = from;
+    document.getElementById('call-name').textContent = from;
+    show('s-incoming');
+  });
+
+  sock.on('call-ringing',  ({ callId }) => { pendingCallId = callId; });
+
+  sock.on('call-accepted', async ({ from, callId }) => {
+    if (callId !== pendingCallId) return;
+    await startRTC(from, true /* initiator */);
+  });
+
+  sock.on('call-declined', ({ from }) => {
+    toast(from + ' declined.', 'error');
+    cleanupCall();
+    show('s-home');
+  });
+
+  sock.on('call-ended', ({ from }) => {
+    if (from !== remoteUser) return;
+    toast('Call ended.');
+    cleanupCall();
+    show('s-home');
+  });
+
+  sock.on('call-failed', ({ reason }) => {
+    toast(reason, 'error');
+    cleanupCall();
+    show('s-home');
+  });
+
+  /* ── WebRTC signaling ── */
+  sock.on('rtc-offer', async ({ from, sdp }) => {
+    if (!peer) await startRTC(from, false /* not initiator */);
+    try {
+      await peer.setRemoteDescription(new RTCSessionDescription(sdp));
+      await flushIceBuffer();
+      const ans = await peer.createAnswer();
+      const mungedAns = { type: ans.type, sdp: opusMunge(ans.sdp) };
+      await peer.setLocalDescription(mungedAns);
+      sock.emit('rtc-answer', { to: from, sdp: peer.localDescription });
+    } catch (e) { console.error('[RTC] offer handler:', e); }
+  });
+
+  sock.on('rtc-answer', async ({ sdp }) => {
+    if (!peer) return;
+    try {
+      await peer.setRemoteDescription(new RTCSessionDescription(sdp));
+      await flushIceBuffer();
+    } catch (e) { console.error('[RTC] answer handler:', e); }
+  });
+
+  sock.on('rtc-ice', async ({ candidate }) => {
+    if (!peer) return;
+    if (!peer.remoteDescription) { iceBuffer.push(candidate); return; }
+    try { await peer.addIceCandidate(new RTCIceCandidate(candidate)); } catch (_) {}
+  });
+}
+
+async function flushIceBuffer() {
+  for (const c of iceBuffer) {
+    try { await peer.addIceCandidate(new RTCIceCandidate(c)); } catch (_) {}
+  }
+  iceBuffer = [];
+}
+
+function setConnected(on) {
+  const dot  = document.getElementById('conn-dot');
+  const text = document.getElementById('conn-text');
+  dot.style.background  = on ? 'var(--green)' : 'var(--red)';
+  text.textContent      = on ? 'Online' : 'Reconnecting…';
+}
+
+/* ══ HOME UI ══════════════════════════════════════════════════════════════════ */
+const onlineSet = new Set();
+
+function setupHomeUI() {
+  const dialInput = document.getElementById('dial-input');
+  const dialBtn   = document.getElementById('dial-btn');
+
+  dialInput.addEventListener('input', () => {
+    const v = dialInput.value.trim().toLowerCase();
+    dialBtn.disabled = !UN_RE.test(v) || v === myName;
+  });
+  dialInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const v = e.target.value.trim().toLowerCase();
+      if (UN_RE.test(v) && v !== myName) callUser(v);
+    }
+  });
+  dialBtn.addEventListener('click', () => {
+    const v = document.getElementById('dial-input').value.trim().toLowerCase();
+    if (UN_RE.test(v) && v !== myName) callUser(v);
+  });
+}
+
+function renderChips() {
+  const list  = document.getElementById('chip-list');
+  const noone = document.getElementById('no-one');
+  if (onlineSet.size === 0) {
+    list.innerHTML = '';
+    list.appendChild(noone);
+    noone.style.display = '';
+    return;
+  }
+  noone.style.display = 'none';
+  // Remove chips that went offline
+  [...list.querySelectorAll('.chip')].forEach(c => {
+    if (!onlineSet.has(c.dataset.user)) c.remove();
+  });
+  // Add new ones
+  for (const u of onlineSet) {
+    if (list.querySelector(`[data-user="${u}"]`)) continue;
+    const chip = document.createElement('div');
+    chip.className    = 'chip';
+    chip.dataset.user = u;
+    chip.innerHTML    = `<div class="chip-av ${avColor(u)}">${avInitial(u)}</div>
+                         <span class="chip-name">${u}</span>`;
+    chip.addEventListener('click', () => {
+      document.getElementById('dial-input').value = u;
+      document.getElementById('dial-btn').disabled = (u === myName);
+    });
+    list.appendChild(chip);
+  }
+}
+
+/* ══ INITIATE CALL ════════════════════════════════════════════════════════════ */
+function callUser(target) {
+  if (peer) { toast('Already in a call.', 'error'); return; }
+  remoteUser = target;
+  setAv(document.getElementById('calling-av'), target);
+  document.getElementById('calling-name').textContent = target;
+  setAv(document.getElementById('call-av'),  target);
+  document.getElementById('call-name').textContent = target;
+  show('s-calling');
+  sock.emit('call-request', { to: target, from: myName });
+}
+
+document.getElementById('cancel-btn').addEventListener('click', () => {
+  if (remoteUser) sock.emit('call-end', { to: remoteUser });
+  cleanupCall();
+  show('s-home');
+});
+
+/* ══ ACCEPT / DECLINE ════════════════════════════════════════════════════════ */
+document.getElementById('accept-btn').addEventListener('click', () => {
+  if (!pendingCallId) return;
+  sock.emit('call-answer', { to: remoteUser, callId: pendingCallId, accepted: true });
+  document.getElementById('call-state').textContent = 'Connecting…';
+  show('s-call');
+  // WebRTC starts when rtc-offer arrives from caller
+});
+
+document.getElementById('decline-btn').addEventListener('click', () => {
+  if (pendingCallId) sock.emit('call-answer', { to: remoteUser, callId: pendingCallId, accepted: false });
+  remoteUser    = null;
+  pendingCallId = null;
+  show('s-home');
+});
+
+/* ══ WebRTC CORE ══════════════════════════════════════════════════════════════ */
+async function startRTC(peerName, asInitiator) {
+  remoteUser = peerName;
+
+  // Request microphone — best quality Opus settings
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation:  { ideal: true },
+        noiseSuppression:  { ideal: true },
+        autoGainControl:   { ideal: true },
+        sampleRate:        { ideal: 48000 },
+        channelCount:      { ideal: 1 },
+        latency:           { ideal: 0 },
+      },
+      video: false,
+    });
+  } catch (e) {
+    toast('Mic access denied — allow in browser settings.', 'error');
+    cleanupCall();
+    show('s-home');
+    return;
+  }
+
+  peer = new RTCPeerConnection(ICE);
+  iceBuffer = [];
+
+  // Add local audio
+  localStream.getAudioTracks().forEach(t => peer.addTrack(t, localStream));
+
+  // ICE candidates
+  peer.onicecandidate = ({ candidate }) => {
+    if (candidate) sock.emit('rtc-ice', { to: peerName, candidate: candidate.toJSON() });
+  };
+
+  // Connection state
+  peer.onconnectionstatechange = () => {
+    const st = peer.connectionState;
+    console.log('[RTC] State:', st);
+    if (st === 'connected')                   onConnected();
+    if (st === 'disconnected' || st === 'failed') onDisconnected();
+  };
+
+  // Remote audio
+  peer.ontrack = ({ streams }) => {
+    const el = document.getElementById('remote-audio');
+    el.srcObject = streams[0];
+    el.play().catch(() => {});
+    startAnalysis(streams[0]);
+  };
+
+  if (asInitiator) {
+    show('s-call');
+    document.getElementById('call-state').textContent = 'Connecting…';
+    try {
+      let offer = await peer.createOffer({ offerToReceiveAudio: true });
+      offer     = { type: offer.type, sdp: opusMunge(offer.sdp) };
+      await peer.setLocalDescription(offer);
+      sock.emit('rtc-offer', { to: peerName, sdp: peer.localDescription });
+    } catch (e) { console.error('[RTC] createOffer:', e); }
+  }
+}
+
+/* Opus SDP munge — 48 kHz, FEC on, DTX off, max 48 kbps */
+function opusMunge(sdp) {
+  return sdp.replace(/a=fmtp:(\d+) (.*)/g, (match, pt, params) => {
+    if (!sdp.includes(`a=rtpmap:${pt} opus`)) return match;
+    const cleaned = params.split(';')
+      .filter(p => !/(maxaveragebitrate|stereo|useinbandfec|usedtx|cbr)/i.test(p))
+      .join(';');
+    return `a=fmtp:${pt} ${cleaned};maxaveragebitrate=48000;stereo=0;useinbandfec=1;usedtx=0`;
+  });
+}
+
+function onConnected() {
+  document.getElementById('call-state').textContent = 'Connected';
+  document.getElementById('call-timer').classList.add('on');
+  document.getElementById('wave').classList.add('on');
+  document.getElementById('quality').classList.add('on');
+  startTimer();
+  pollQuality();
+}
+
+function onDisconnected() {
+  toast('Connection lost.', 'error');
+  cleanupCall();
+  show('s-home');
+}
+
+/* Quality polling — checks if TURN relay is being used */
+async function pollQuality() {
+  if (!peer) return;
+  try {
+    const stats = await peer.getStats();
+    let relay = false;
+    stats.forEach(r => {
+      if (r.type === 'remote-candidate' && r.candidateType === 'relay') relay = true;
+    });
+    const dot  = document.getElementById('q-dot');
+    const text = document.getElementById('q-text');
+    dot.className    = 'q-dot' + (relay ? ' relay' : '');
+    text.textContent = relay ? 'Via TURN relay' : 'Direct P2P';
+  } catch (_) {}
+  setTimeout(pollQuality, 5000);
+}
+
+/* ══ CONTROLS ════════════════════════════════════════════════════════════════ */
+document.getElementById('mute-btn').addEventListener('click', () => {
+  if (!localStream) return;
+  isMuted = !isMuted;
+  localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
+  const circle = document.getElementById('mute-circle');
+  const label  = document.getElementById('mute-label');
+  circle.className = 'ctrl-circle' + (isMuted ? ' muted' : '');
+  label.textContent = isMuted ? 'Unmute' : 'Mute';
+});
+
+document.getElementById('speaker-btn').addEventListener('click', () => {
+  isSpeaker = !isSpeaker;
+  document.getElementById('speaker-circle').className =
+    'ctrl-circle' + (isSpeaker ? ' active' : '');
+  toast(isSpeaker ? 'Speaker on' : 'Speaker off');
+});
+
+document.getElementById('end-btn').addEventListener('click', hangup);
+
+function hangup() {
+  if (remoteUser) sock.emit('call-end', { to: remoteUser });
+  cleanupCall();
+  show('s-home');
+}
+
+/* ══ CLEANUP ══════════════════════════════════════════════════════════════════ */
+function cleanupCall() {
+  stopTimer();
+  stopAnalysis();
+
+  if (peer) {
+    peer.ontrack = peer.onicecandidate = peer.onconnectionstatechange = null;
+    try { peer.close(); } catch (_) {}
+    peer = null;
+  }
+  if (localStream) {
+    localStream.getTracks().forEach(t => t.stop());
+    localStream = null;
+  }
+  document.getElementById('remote-audio').srcObject = null;
+
+  // Reset UI state
+  isMuted = false; isSpeaker = false;
+  remoteUser = null; pendingCallId = null; iceBuffer = [];
+
+  document.getElementById('mute-circle').className  = 'ctrl-circle';
+  document.getElementById('mute-label').textContent = 'Mute';
+  document.getElementById('speaker-circle').className = 'ctrl-circle';
+  document.getElementById('wave').classList.remove('on', 'live');
+  document.getElementById('quality').classList.remove('on');
+  document.getElementById('call-timer').classList.remove('on');
+  document.getElementById('speak-ring').classList.remove('on');
+}
+
+/* ══ TIMER ════════════════════════════════════════════════════════════════════ */
+function startTimer() {
+  timerSecs = 0;
+  const el  = document.getElementById('call-timer');
+  timerID   = setInterval(() => {
+    timerSecs++;
+    const m = Math.floor(timerSecs / 60);
+    const s = String(timerSecs % 60).padStart(2, '0');
+    el.textContent = `${m}:${s}`;
+  }, 1000);
+}
+function stopTimer() {
+  clearInterval(timerID);
+  timerID = null; timerSecs = 0;
+  document.getElementById('call-timer').textContent = '0:00';
+}
+
+/* ══ AUDIO ANALYSIS (remote speaking indicator) ══════════════════════════════ */
+function startAnalysis(remoteStream) {
+  try {
+    audioCtx  = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+    const src = audioCtx.createMediaStreamSource(remoteStream);
+    analyser  = audioCtx.createAnalyser();
+    analyser.fftSize             = 256;
+    analyser.smoothingTimeConstant = 0.72;
+    src.connect(analyser);
+
+    const data  = new Uint8Array(analyser.frequencyBinCount);
+    const wave  = document.getElementById('wave');
+    const ring  = document.getElementById('speak-ring');
+    const bars  = wave.querySelectorAll('.wbar');
+    const THRESH = 14;
+    let speaking = false, silT = null;
+
+    function tick() {
+      rafID = requestAnimationFrame(tick);
+      analyser.getByteFrequencyData(data);
+      const vol = data.reduce((a, b) => a + b, 0) / data.length;
+
+      if (vol > THRESH) {
+        clearTimeout(silT);
+        if (!speaking) {
+          speaking = true;
+          wave.classList.add('live');
+          ring.classList.add('on');
+        }
+        bars.forEach((b, i) => {
+          const idx = Math.floor((i / bars.length) * data.length * 0.38);
+          b.style.height = (4 + Math.round((data[idx] / 255) * 18)) + 'px';
+        });
+      } else if (speaking) {
+        silT = setTimeout(() => {
+          speaking = false;
+          wave.classList.remove('live');
+          ring.classList.remove('on');
+          bars.forEach(b => b.style.height = '4px');
+        }, 420);
+      }
+    }
+    tick();
+  } catch (e) { console.warn('[Analysis]', e.message); }
+}
+
+function stopAnalysis() {
+  if (rafID)    { cancelAnimationFrame(rafID); rafID = null; }
+  if (audioCtx) { audioCtx.close().catch(() => {}); audioCtx = null; }
+  analyser = null;
+}
+
+/* ══ CLEANUP ON UNLOAD ════════════════════════════════════════════════════════ */
+window.addEventListener('beforeunload', () => {
+  if (remoteUser && sock) sock.emit('call-end', { to: remoteUser });
+  if (sock) sock.disconnect();
+});
+</script>
+</body>
+</html>
