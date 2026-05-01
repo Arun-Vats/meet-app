@@ -726,20 +726,19 @@ body{
    ══════════════════════════════════════════════════════════════════════════ */
 const SIGNAL_URL = 'https://vocational-simone-aspandit374-66898499.koyeb.app';
 
-/* ICE config — TURN is last resort only, P2P strongly preferred */
+/* ICE config — TURN loaded upfront but P2P always wins by ICE priority */
 const ICE = {
   iceServers: [
-    // STUN first — used to discover public IP (srflx candidates)
     { urls: 'stun:stun.cloudflare.com:3478' },
     { urls: 'stun:stun.l.google.com:19302'  },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
-    // TURN added later by fetchTurn() — appended last so browser tries P2P first
+    // TURN appended after fetchTurn() resolves
   ],
-  iceTransportPolicy:   'all',      // allow all candidate types
+  iceTransportPolicy:   'all',
   bundlePolicy:         'max-bundle',
   rtcpMuxPolicy:        'require',
-  iceCandidatePoolSize: 4,          // pre-gather candidates so direct path found faster
+  iceCandidatePoolSize: 0,  // 0 = don't pre-gather, gather fresh when call starts
 };
 
 /* ══ STATE ══════════════════════════════════════════════════════════════════ */
@@ -792,58 +791,43 @@ function toast(msg, type = '') {
 }
 
 /* ══ TURN CREDENTIALS ════════════════════════════════════════════════════════
+ * Fetched once on register. Credentials are ready before any call starts.
+ * Browser ICE priority guarantees P2P (host/srflx) is always tried first.
+ * TURN (relay) only activates if P2P genuinely fails — no code needed.
  *
- * IMPROVEMENT 1 — Delayed TURN injection.
- * TURN is fetched only when a call needs it (after 4s P2P window).
- * If P2P succeeds in those 4s, TURN is never loaded at all.
- *
- * IMPROVEMENT 3 — UDP-only TURN.
- * TCP TURN candidates (transport=tcp) are skipped entirely.
- * TCP TURN is needed for <5% of users (extreme firewall only).
- * Skipping it reduces unnecessary relay overhead for everyone else.
- * The turns: (TLS) URL is also dropped — pure UDP TURN only.
+ * IMPROVEMENT 3 kept: UDP-only TURN — skip TCP/TLS relay candidates.
+ * TCP TURN needed for <5% of users. Skipping it reduces relay overhead.
  * ══════════════════════════════════════════════════════════════════════════ */
 
 let _turnFetchPromise = null;
 
-async function _doFetchTurn() {
+async function fetchTurn() {
   if (turnLoaded) return;
-  try {
-    const res = await fetch(SIGNAL_URL + '/turn');
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data    = await res.json();
-    const raw     = data.iceServers || data;
-    const servers = Array.isArray(raw) ? raw : [raw];
-    for (const s of servers) {
-      if (!s.username || !s.credential) continue;
-      const urls = Array.isArray(s.urls) ? s.urls : [s.urls];
-      for (const url of urls) {
-        // IMPROVEMENT 3: skip TCP TURN and TLS TURN — UDP only
-        if (!url.startsWith('turn:')) continue;          // keep only turn: (UDP)
-        if (url.includes('transport=tcp')) continue;     // skip TCP transport
-        ICE.iceServers.push({ urls: url, username: s.username, credential: s.credential });
+  if (_turnFetchPromise) return _turnFetchPromise;
+  _turnFetchPromise = (async () => {
+    try {
+      const res  = await fetch(SIGNAL_URL + '/turn');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data    = await res.json();
+      const raw     = data.iceServers || data;
+      const servers = Array.isArray(raw) ? raw : [raw];
+      for (const s of servers) {
+        if (!s.username || !s.credential) continue;
+        const urls = Array.isArray(s.urls) ? s.urls : [s.urls];
+        for (const url of urls) {
+          // UDP TURN only — skip TCP and TLS variants
+          if (!url.startsWith('turn:')) continue;
+          if (url.includes('transport=tcp')) continue;
+          ICE.iceServers.push({ urls: url, username: s.username, credential: s.credential });
+        }
       }
+      turnLoaded = true;
+      console.log('[TURN] Ready. ICE servers:', ICE.iceServers.length);
+    } catch (e) {
+      console.warn('[TURN] Fetch failed — STUN only:', e.message);
     }
-    turnLoaded = true;
-    console.log('[TURN] UDP credentials loaded. ICE servers:', ICE.iceServers.length);
-  } catch (e) {
-    console.warn('[TURN] Fetch failed — STUN only will be used:', e.message);
-  }
-}
-
-// Injects TURN into a live peer connection via setConfiguration().
-// Called only after the P2P window expires without a connection.
-async function injectTurn() {
-  if (!peer) return;
-  if (!_turnFetchPromise) _turnFetchPromise = _doFetchTurn();
-  await _turnFetchPromise;
-  if (!turnLoaded || !peer) return;
-  try {
-    peer.setConfiguration({ ...ICE });
-    console.log('[TURN] Injected into live peer — relay candidates now gathering.');
-  } catch (e) {
-    console.warn('[TURN] setConfiguration failed:', e.message);
-  }
+  })();
+  return _turnFetchPromise;
 }
 
 /* ══ REGISTER UI ══════════════════════════════════════════════════════════════ */
@@ -897,10 +881,7 @@ function initSocket(username) {
     myName = name;
     document.getElementById('my-name').textContent = name;
     setConnected(true);
-    // IMPROVEMENT 1: Do NOT fetch TURN on register.
-    // TURN credentials are fetched and injected only after
-    // a 4-second P2P window inside startRTC().
-    // This means most calls connect via STUN before TURN is ever loaded.
+    fetchTurn(); // load TURN credentials now so they're ready before first call
     setupHomeUI();
     show('s-home');
   });
@@ -1137,94 +1118,57 @@ async function startRTC(peerName, asInitiator) {
     }
   }
 
-  // Create peer with STUN only — TURN not loaded yet.
-  // This is the core of IMPROVEMENT 1: the browser immediately
-  // gathers host + srflx candidates and begins connectivity checks.
-  // TURN is only injected if P2P hasn't succeeded after 4 seconds.
+  // Wait for TURN to be ready before creating peer
+  // so all candidates (host, srflx, relay) are gathered together.
+  // Browser ICE priority handles the rest: host > srflx > relay.
+  // P2P wins automatically if it can work.
+  await fetchTurn();
+
   peer = new RTCPeerConnection(ICE);
   iceBuffer = [];
 
-  // Add local audio
   localStream.getAudioTracks().forEach(t => peer.addTrack(t, localStream));
 
-  // Trickle ICE — send every candidate as it's gathered.
-  // Browser gathers host first, then srflx (STUN), then relay (TURN).
-  // This natural ordering means P2P is always attempted before relay.
+  // Trickle all candidates as gathered — browser orders them by priority
   peer.onicecandidate = ({ candidate }) => {
     if (!candidate) return;
     sock.emit('rtc-ice', { to: peerName, candidate: candidate.toJSON() });
     console.log('[ICE] Gathered:', candidate.type, candidate.protocol || '');
   };
 
-  // ICE failure handler — inject TURN immediately and restart.
-  // This replaces the 4s timer approach. The timer was causing
-  // 'connection lost' because ICE failed before 4s elapsed.
-  // Now: the moment ICE fails, we inject TURN + restart in one shot.
+  // IMPROVEMENT 2: ICE restart on failure.
+  // If ICE fails, caller sends a fresh offer with iceRestart:true
+  // to re-gather candidates. Fixes first-call failure on bad networks.
   let _iceRestartAttempted = false;
   peer.oniceconnectionstatechange = () => {
     const st = peer.iceConnectionState;
     console.log('[ICE] State:', st);
-
     if (st === 'failed' && !_iceRestartAttempted && peer) {
       _iceRestartAttempted = true;
-      console.log('[ICE] Failed — injecting TURN + restarting ICE.');
-
-      // Step 1: inject TURN immediately
-      injectTurn().then(() => {
-        if (!peer) return;
-        if (asInitiator) {
-          // Step 2: caller sends a new offer with iceRestart:true
-          // This re-gathers all candidates including new TURN relay ones
-          peer.createOffer({ iceRestart: true })
-            .then(offer => {
-              offer = { type: offer.type, sdp: opusMunge(offer.sdp) };
-              return peer.setLocalDescription(offer);
-            })
-            .then(() => {
-              sock.emit('rtc-offer', { to: peerName, sdp: peer.localDescription });
-              console.log('[ICE] Restart offer sent with TURN candidates.');
-            })
-            .catch(e => console.warn('[ICE] Restart offer error:', e.message));
-        } else {
-          // Callee: signal ICE restart, caller will send new offer
-          peer.restartIce();
-        }
-      });
+      console.log('[ICE] Failed — restarting ICE.');
+      if (asInitiator) {
+        peer.createOffer({ iceRestart: true })
+          .then(offer => {
+            offer = { type: offer.type, sdp: opusMunge(offer.sdp) };
+            return peer.setLocalDescription(offer);
+          })
+          .then(() => {
+            sock.emit('rtc-offer', { to: peerName, sdp: peer.localDescription });
+            console.log('[ICE] Restart offer sent.');
+          })
+          .catch(e => console.warn('[ICE] Restart error:', e.message));
+      } else {
+        peer.restartIce();
+      }
     }
   };
 
-  // 4s timer only used to inject TURN proactively
-  // if ICE is stuck in 'checking' (not yet failed but taking too long)
-  const _turnTimer = setTimeout(async () => {
-    if (!peer) return;
-    const iceState = peer.iceConnectionState;
-    const connState = peer.connectionState;
-    if (connState === 'connected') {
-      console.log('[ICE] P2P succeeded — TURN not needed.');
-      return;
-    }
-    if (iceState === 'checking' && !_iceRestartAttempted) {
-      console.log('[ICE] Still checking after 4s — injecting TURN proactively.');
-      await injectTurn();
-      // No restart needed — just adding more candidates to existing check
-    }
-  }, 4000);
-
-  // Cancel TURN timer if peer closes before it fires
+  // Connection state — 'disconnected' is temporary, only 'failed' ends call
   peer.onconnectionstatechange = () => {
     const st = peer.connectionState;
-    console.log('[RTC] Connection state:', st);
-    if (st === 'connected') {
-      clearTimeout(_turnTimer);
-      onConnected();
-    }
-    // 'disconnected' is temporary (network blip) — do NOT hang up.
-    // Browser will attempt to reconnect automatically.
-    // Only 'failed' means the connection is truly dead.
-    if (st === 'failed') {
-      clearTimeout(_turnTimer);
-      onDisconnected();
-    }
+    console.log('[RTC] State:', st);
+    if (st === 'connected')  onConnected();
+    if (st === 'failed')     onDisconnected();
   };
 
   // Remote audio
