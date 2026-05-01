@@ -1156,47 +1156,57 @@ async function startRTC(peerName, asInitiator) {
     console.log('[ICE] Gathered:', candidate.type, candidate.protocol || '');
   };
 
-  // IMPROVEMENT 2: ICE restart on failure before giving up.
+  // ICE failure handler — inject TURN immediately and restart.
+  // This replaces the 4s timer approach. The timer was causing
+  // 'connection lost' because ICE failed before 4s elapsed.
+  // Now: the moment ICE fails, we inject TURN + restart in one shot.
   let _iceRestartAttempted = false;
   peer.oniceconnectionstatechange = () => {
     const st = peer.iceConnectionState;
-    console.log('[ICE] Connection state:', st);
+    console.log('[ICE] State:', st);
+
     if (st === 'failed' && !_iceRestartAttempted && peer) {
       _iceRestartAttempted = true;
-      console.log('[ICE] Failed — attempting ICE restart.');
-      if (asInitiator) {
-        // Caller: create a new offer with iceRestart:true so the
-        // browser re-gathers fresh candidates and resends them.
-        peer.createOffer({ iceRestart: true })
-          .then(offer => {
-            offer = { type: offer.type, sdp: opusMunge(offer.sdp) };
-            return peer.setLocalDescription(offer);
-          })
-          .then(() => {
-            sock.emit('rtc-offer', { to: peerName, sdp: peer.localDescription });
-            console.log('[ICE] Restart offer sent.');
-          })
-          .catch(e => console.warn('[ICE] Restart offer failed:', e.message));
-      } else {
-        // Callee: just signal readiness — caller will send restart offer.
-        peer.restartIce();
-      }
+      console.log('[ICE] Failed — injecting TURN + restarting ICE.');
+
+      // Step 1: inject TURN immediately
+      injectTurn().then(() => {
+        if (!peer) return;
+        if (asInitiator) {
+          // Step 2: caller sends a new offer with iceRestart:true
+          // This re-gathers all candidates including new TURN relay ones
+          peer.createOffer({ iceRestart: true })
+            .then(offer => {
+              offer = { type: offer.type, sdp: opusMunge(offer.sdp) };
+              return peer.setLocalDescription(offer);
+            })
+            .then(() => {
+              sock.emit('rtc-offer', { to: peerName, sdp: peer.localDescription });
+              console.log('[ICE] Restart offer sent with TURN candidates.');
+            })
+            .catch(e => console.warn('[ICE] Restart offer error:', e.message));
+        } else {
+          // Callee: signal ICE restart, caller will send new offer
+          peer.restartIce();
+        }
+      });
     }
   };
 
-  // IMPROVEMENT 1 continued: 4-second P2P window.
-  // If the connection is not yet 'connected' after 4s, inject TURN.
-  // Most successful P2P connections complete in <2s.
-  // 4s gives plenty of room without delaying TURN too long for
-  // users who genuinely need it.
+  // 4s timer only used to inject TURN proactively
+  // if ICE is stuck in 'checking' (not yet failed but taking too long)
   const _turnTimer = setTimeout(async () => {
     if (!peer) return;
-    const st = peer.connectionState;
-    if (st !== 'connected' && st !== 'closed') {
-      console.log('[ICE] P2P window expired (' + st + ') — injecting TURN.');
-      await injectTurn();
-    } else {
+    const iceState = peer.iceConnectionState;
+    const connState = peer.connectionState;
+    if (connState === 'connected') {
       console.log('[ICE] P2P succeeded — TURN not needed.');
+      return;
+    }
+    if (iceState === 'checking' && !_iceRestartAttempted) {
+      console.log('[ICE] Still checking after 4s — injecting TURN proactively.');
+      await injectTurn();
+      // No restart needed — just adding more candidates to existing check
     }
   }, 4000);
 
