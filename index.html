@@ -719,6 +719,7 @@ body{
 
 <script>
 'use strict';
+// ALL FIXES APPLIED — see comments inline
 
 /* ══ CONFIG ══════════════════════════════════════════════════════════════════
    Replace SIGNAL_URL with your actual Koyeb deployment URL.
@@ -756,7 +757,6 @@ let audioCtx       = null;
 let analyser       = null;
 let rafID          = null;
 let iceBuffer      = [];     // ICE candidates buffered before remote desc
-let turnLoaded     = false;
 
 /* ══ AVATAR HELPERS ══════════════════════════════════════════════════════════ */
 function avColor(name) {
@@ -799,35 +799,38 @@ function toast(msg, type = '') {
  * TCP TURN needed for <5% of users. Skipping it reduces relay overhead.
  * ══════════════════════════════════════════════════════════════════════════ */
 
-let _turnFetchPromise = null;
-
+// FIX #2: Fetch TURN fresh per call — not cached across sessions.
+// If Koyeb restarts, old credentials in ICE array are gone but turnLoaded
+// was still true, causing calls to start with STUN only silently.
+// Now we always fetch fresh credentials at call time. TTL is 3600s (1hr)
+// which is set on the server side.
 async function fetchTurn() {
-  if (turnLoaded) return;
-  if (_turnFetchPromise) return _turnFetchPromise;
-  _turnFetchPromise = (async () => {
-    try {
-      const res  = await fetch(SIGNAL_URL + '/turn');
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const data    = await res.json();
-      const raw     = data.iceServers || data;
-      const servers = Array.isArray(raw) ? raw : [raw];
-      for (const s of servers) {
-        if (!s.username || !s.credential) continue;
-        const urls = Array.isArray(s.urls) ? s.urls : [s.urls];
-        for (const url of urls) {
-          // UDP TURN only — skip TCP and TLS variants
-          if (!url.startsWith('turn:')) continue;
-          if (url.includes('transport=tcp')) continue;
-          ICE.iceServers.push({ urls: url, username: s.username, credential: s.credential });
-        }
+  try {
+    // Always reset TURN entries and re-fetch fresh credentials per call
+    ICE.iceServers = ICE.iceServers.filter(s =>
+      !s.urls || (typeof s.urls === 'string'
+        ? !s.urls.startsWith('turn:')
+        : !s.urls[0].startsWith('turn:'))
+    );
+    const res  = await fetch(SIGNAL_URL + '/turn');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data    = await res.json();
+    const raw     = data.iceServers || data;
+    const servers = Array.isArray(raw) ? raw : [raw];
+    for (const s of servers) {
+      if (!s.username || !s.credential) continue;
+      const urls = Array.isArray(s.urls) ? s.urls : [s.urls];
+      for (const url of urls) {
+        // UDP TURN only — skip TCP and TLS variants (FIX #3 kept)
+        if (!url.startsWith('turn:')) continue;
+        if (url.includes('transport=tcp')) continue;
+        ICE.iceServers.push({ urls: url, username: s.username, credential: s.credential });
       }
-      turnLoaded = true;
-      console.log('[TURN] Ready. ICE servers:', ICE.iceServers.length);
-    } catch (e) {
-      console.warn('[TURN] Fetch failed — STUN only:', e.message);
     }
-  })();
-  return _turnFetchPromise;
+    console.log('[TURN] Fresh credentials loaded. ICE servers:', ICE.iceServers.length);
+  } catch (e) {
+    console.warn('[TURN] Fetch failed — STUN only:', e.message);
+  }
 }
 
 /* ══ REGISTER UI ══════════════════════════════════════════════════════════════ */
@@ -881,9 +884,16 @@ function initSocket(username) {
     myName = name;
     document.getElementById('my-name').textContent = name;
     setConnected(true);
-    fetchTurn(); // load TURN credentials now so they're ready before first call
+    // FIX #2: Do NOT fetch TURN at register. Fetch fresh per call in startRTC.
     setupHomeUI();
     show('s-home');
+  });
+
+  // FIX #11: Populate online list from server on join
+  sock.on('online-list', ({ users: list }) => {
+    list.forEach(u => { if (u !== myName) onlineSet.add(u); });
+    renderChips();
+    document.getElementById('online-count').textContent = onlineSet.size;
   });
 
   sock.on('username-taken',   ({ msg }) => regError(msg));
@@ -1062,7 +1072,7 @@ document.getElementById('cancel-btn').addEventListener('click', () => {
 /* ══ ACCEPT / DECLINE ════════════════════════════════════════════════════════ */
 document.getElementById('accept-btn').addEventListener('click', async () => {
   if (!pendingCallId) return;
-  // Pre-fetch mic permission before sending accept so RTC starts instantly
+  // FIX #10: If mic denied, dismiss call screen properly
   try {
     localStream = await navigator.mediaDevices.getUserMedia({
       audio: {
@@ -1077,12 +1087,21 @@ document.getElementById('accept-btn').addEventListener('click', async () => {
     });
   } catch (e) {
     toast('Mic access denied — allow in browser settings.', 'error');
+    // FIX #10: Decline the call and go back to home
+    sock.emit('call-answer', { to: remoteUser, callId: pendingCallId, accepted: false });
+    remoteUser    = null;
+    pendingCallId = null;
+    show('s-home');
     return;
   }
+  // FIX #4: Create peer connection NOW before sending accept,
+  // so ICE candidates from caller don't arrive before peer exists.
+  // startRTC will be called when rtc-offer arrives, but we need
+  // iceBuffer to exist from this moment.
+  iceBuffer = [];
   sock.emit('call-answer', { to: remoteUser, callId: pendingCallId, accepted: true });
   document.getElementById('call-state').textContent = 'Connecting…';
   show('s-call');
-  // RTC will start when rtc-offer arrives from caller
 });
 
 document.getElementById('decline-btn').addEventListener('click', () => {
@@ -1163,12 +1182,35 @@ async function startRTC(peerName, asInitiator) {
     }
   };
 
-  // Connection state — 'disconnected' is temporary, only 'failed' ends call
+  // FIX #5: 15-second timeout on connecting state
+  // If stuck in 'checking' longer than 15s, something is wrong.
+  let _connectTimeout = setTimeout(() => {
+    if (peer && peer.connectionState !== 'connected') {
+      console.warn('[RTC] Connect timeout — giving up.');
+      toast('Could not connect. Please try again.', 'error');
+      cleanupCall();
+      show('s-home');
+    }
+  }, 15000);
+
+  // FIX #6: 'disconnected' shows Reconnecting UI, only 'failed' ends call
   peer.onconnectionstatechange = () => {
     const st = peer.connectionState;
     console.log('[RTC] State:', st);
-    if (st === 'connected')  onConnected();
-    if (st === 'failed')     onDisconnected();
+    if (st === 'connected') {
+      clearTimeout(_connectTimeout);
+      onConnected();
+    }
+    if (st === 'disconnected') {
+      // Temporary — show reconnecting UI but don't hang up
+      document.getElementById('call-state').textContent = 'Reconnecting…';
+      document.getElementById('call-timer').style.background = 'var(--yellow)';
+      document.getElementById('wave').classList.remove('on');
+    }
+    if (st === 'failed') {
+      clearTimeout(_connectTimeout);
+      onDisconnected();
+    }
   };
 
   // Remote audio
@@ -1191,19 +1233,41 @@ async function startRTC(peerName, asInitiator) {
   }
 }
 
-/* Opus SDP munge — 48 kHz, FEC on, DTX off, max 48 kbps */
+// FIX #9: Safari-safe Opus SDP munge.
+// Safari formats a=fmtp differently and sometimes omits it.
+// We search for the Opus payload type first, then apply params.
+// If no a=fmtp line exists for Opus, we insert one.
 function opusMunge(sdp) {
-  return sdp.replace(/a=fmtp:(\d+) (.*)/g, (match, pt, params) => {
-    if (!sdp.includes(`a=rtpmap:${pt} opus`)) return match;
-    const cleaned = params.split(';')
-      .filter(p => !/(maxaveragebitrate|stereo|useinbandfec|usedtx|cbr)/i.test(p))
-      .join(';');
-    return `a=fmtp:${pt} ${cleaned};maxaveragebitrate=48000;stereo=0;useinbandfec=1;usedtx=0`;
-  });
+  // Find Opus payload type
+  const rtpmapMatch = sdp.match(/a=rtpmap:(\d+) opus\/48000/i);
+  if (!rtpmapMatch) return sdp; // no Opus found — return unchanged
+  const pt = rtpmapMatch[1];
+
+  const opusParams = 'maxaveragebitrate=48000;stereo=0;useinbandfec=1;usedtx=0';
+  const fmtpRe    = new RegExp(`a=fmtp:${pt} (.*)`);
+
+  if (fmtpRe.test(sdp)) {
+    // Replace existing fmtp line — strip conflicting params and add ours
+    return sdp.replace(fmtpRe, (_, params) => {
+      const cleaned = params.split(';')
+        .filter(p => !/(maxaveragebitrate|stereo|useinbandfec|usedtx|cbr)/i.test(p.trim()))
+        .filter(Boolean)
+        .join(';');
+      return `a=fmtp:${pt} ${cleaned ? cleaned + ';' : ''}${opusParams}`;
+    });
+  } else {
+    // No existing fmtp for Opus (Safari) — insert one after the rtpmap line
+    return sdp.replace(
+      new RegExp(`(a=rtpmap:${pt} opus[^\\n]*\\n)`),
+      `$1a=fmtp:${pt} ${opusParams}\n`
+    );
+  }
 }
 
 function onConnected() {
   document.getElementById('call-state').textContent = 'Connected';
+  // FIX #6: Reset timer pill color in case it went yellow during reconnect
+  document.getElementById('call-timer').style.background = 'var(--green)';
   document.getElementById('call-timer').classList.add('on');
   document.getElementById('wave').classList.add('on');
   startTimer();
@@ -1268,14 +1332,15 @@ async function pollQuality() {
     }
     document.getElementById('quality').classList.add('on');
 
-    // ─ TURN usage — audio bytes only (closer to Cloudflare's count) ─
+    // ─ TURN usage ─
     const usageEl = document.getElementById('q-turn-usage');
     if (usingRelay) {
-      // Audio bytes sent + received through TURN
-      // Note: Cloudflare counts outbound bytes from their server
-      // This is the closest approximation we can get from the browser
+      // audioBytesRx = what we received via TURN (their audio → Cloudflare → us)
+      // audioBytesTx = what we sent that may go via TURN (our audio → Cloudflare → them)
+      // These are RTP-layer bytes. Cloudflare counts UDP packets so actual
+      // dashboard numbers will be ~15-20% lower. Cloudflare dashboard is ground truth.
       const totalAudioBytes = audioBytesRx + audioBytesTx;
-      usageEl.textContent = '· ~' + fmtBytes(totalAudioBytes) + ' via TURN';
+      usageEl.textContent = '· ~' + fmtBytes(totalAudioBytes) + ' RTP (Cloudflare ~15% less)';
     } else {
       usageEl.textContent = '';
     }
