@@ -568,11 +568,19 @@ function connect() {
     sock.emit('join-room', { roomId: ROOM_ID });
   });
 
-  sock.on('room-joined', ({ role }) => {
+  sock.on('room-joined', async ({ role }) => {
     myRole = role;
     console.log('[Room] Joined as:', role);
-    document.getElementById('wait-label').textContent =
-      role === 'initiator' ? 'Waiting for peer…' : 'Peer found — connecting…';
+    if (role === 'initiator') {
+      document.getElementById('wait-label').textContent = 'Waiting for peer…';
+    } else {
+      // Responder: peer is already in the room.
+      // Start RTC immediately so peer + mic are ready before offer arrives.
+      document.getElementById('wait-label').textContent = 'Peer found — connecting…';
+      show('s-call');
+      document.getElementById('call-status').textContent = 'Connecting…';
+      await startRTC(false);
+    }
   });
 
   sock.on('room-full', ({ msg }) => {
@@ -584,21 +592,36 @@ function connect() {
   });
 
   // Second peer joined — initiator starts WebRTC
+  // Small delay gives responder time to call startRTC() and
+  // get mic permission before the offer arrives.
   sock.on('peer-joined', async () => {
-    console.log('[Room] Peer joined — starting RTC as initiator.');
+    console.log('[Room] Peer joined — starting RTC as initiator in 800ms.');
     document.getElementById('wait-label').textContent = 'Peer found — connecting…';
     show('s-call');
+    document.getElementById('call-status').textContent = 'Connecting…';
+    await new Promise(r => setTimeout(r, 800));
     await startRTC(true);
   });
 
   // Responder: received offer from initiator
   sock.on('rtc-offer', async ({ sdp }) => {
+    // If peer doesn't exist yet (edge case), init it now
     if (!peer) {
       show('s-call');
+      document.getElementById('call-status').textContent = 'Connecting…';
       await startRTC(false);
     }
+    // Wait briefly if RTC just started and peer isn't fully ready
+    let attempts = 0;
+    while ((!peer || !peer.signalingState) && attempts++ < 20) {
+      await new Promise(r => setTimeout(r, 100));
+    }
     try {
-      await peer.setRemoteDescription(new RTCSessionDescription(sdp));
+      if (peer.signalingState !== 'stable' && peer.signalingState !== 'have-remote-offer') {
+        await peer.setRemoteDescription(new RTCSessionDescription(sdp));
+      } else if (peer.signalingState === 'stable') {
+        await peer.setRemoteDescription(new RTCSessionDescription(sdp));
+      }
       await flushIceBuffer();
       let answer = await peer.createAnswer();
       answer = { type: answer.type, sdp: opusMunge(answer.sdp) };
