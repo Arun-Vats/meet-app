@@ -10,418 +10,202 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
-/* ─── RESET ──────────────────────────────────────────────────────────────── */
+/* ── RESET ──────────────────────────────────────────────────────────────── */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;height:100dvh;overflow:hidden;-webkit-font-smoothing:antialiased}
 
-/* ─── TOKENS ─────────────────────────────────────────────────────────────── */
 :root{
   --safe-t:env(safe-area-inset-top,0px);
   --safe-b:env(safe-area-inset-bottom,0px);
-  --safe-l:env(safe-area-inset-left,0px);
-  --safe-r:env(safe-area-inset-right,0px);
-
   --bg:        #0a0a0f;
   --surface:   #13131a;
   --surface2:  #1c1c28;
-  --surface3:  #242434;
   --border:    rgba(255,255,255,0.07);
-  --border2:   rgba(255,255,255,0.12);
-  --border3:   rgba(255,255,255,0.18);
+  --border2:   rgba(255,255,255,0.13);
   --text:      #f0f0f8;
   --text2:     #8080a0;
   --text3:     #48485e;
   --accent:    #5b9cf6;
-  --accent2:   #7b6cf6;
   --adim:      rgba(91,156,246,0.14);
   --green:     #32d583;
   --gdim:      rgba(50,213,131,0.14);
   --red:       #f2534a;
   --rdim:      rgba(242,83,74,0.14);
   --yellow:    #ffc940;
-  --ydim:      rgba(255,201,64,0.14);
-
-  --font:'Outfit',sans-serif;
-  --r-sm:8px;
-  --r-md:14px;
-  --r-lg:20px;
-  --r-xl:28px;
-  --r-full:9999px;
+  --font:      'Outfit',sans-serif;
+  --r-sm:      8px;
+  --r-md:      14px;
+  --r-lg:      20px;
+  --r-full:    9999px;
 }
 
 body{
   background:var(--bg);
   color:var(--text);
   font-family:var(--font);
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 
-/* ─── SCREEN SYSTEM ──────────────────────────────────────────────────────── */
+/* ── SCREENS ─────────────────────────────────────────────────────────────── */
 .screen{
   position:fixed;inset:0;
   display:flex;flex-direction:column;
-  padding:var(--safe-t) var(--safe-r) var(--safe-b) var(--safe-l);
+  align-items:center;justify-content:center;
+  padding:calc(var(--safe-t) + 24px) 28px calc(var(--safe-b) + 24px);
   opacity:0;pointer-events:none;
-  transition:opacity .28s ease,transform .28s ease;
-  will-change:transform,opacity;
+  transition:opacity .25s ease,transform .25s ease;
 }
 .screen.active{opacity:1;pointer-events:auto;transform:none!important}
-.from-bottom{transform:translateY(48px)}
-.from-top   {transform:translateY(-48px)}
+.from-up  {transform:translateY(20px)}
+.from-down{transform:translateY(-20px)}
 
-/* ─── REGISTER ───────────────────────────────────────────────────────────── */
-#s-register{
-  align-items:center;justify-content:center;
-  gap:0;padding:40px 28px;
-  background:var(--bg);
-}
-.logo-mark{
-  width:72px;height:72px;border-radius:22px;
-  background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 100%);
+/* ── WAITING SCREEN ──────────────────────────────────────────────────────── */
+#s-wait{gap:0;text-align:center}
+
+.logo{
+  width:64px;height:64px;border-radius:20px;
+  background:linear-gradient(135deg,var(--accent),#7b6cf6);
   display:flex;align-items:center;justify-content:center;
-  margin-bottom:32px;
-  box-shadow:0 16px 48px rgba(91,156,246,.32);
+  margin-bottom:28px;
+  box-shadow:0 12px 40px rgba(91,156,246,.3);
 }
-.logo-mark svg{width:34px;height:34px}
-.reg-title{
-  font-size:32px;font-weight:700;letter-spacing:-.05em;
-  margin-bottom:10px;text-align:center;
-}
-.reg-sub{
-  font-size:15px;color:var(--text2);text-align:center;
-  line-height:1.55;max-width:256px;margin-bottom:48px;
-}
+.logo svg{width:30px;height:30px}
 
-.field{width:100%;max-width:312px;margin-bottom:10px;position:relative}
-.field input{
-  width:100%;background:var(--surface);
-  border:1.5px solid var(--border2);
-  border-radius:var(--r-md);
-  padding:15px 18px;
-  font-family:var(--font);font-size:17px;font-weight:400;
-  color:var(--text);outline:none;
-  transition:border-color .18s,box-shadow .18s;
-  letter-spacing:-.01em;
+.wait-title{
+  font-size:26px;font-weight:700;
+  letter-spacing:-.04em;margin-bottom:10px;
 }
-.field input::placeholder{color:var(--text3)}
-.field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--adim)}
-.field input.err{border-color:var(--red)}
-.field input.err:focus{box-shadow:0 0 0 3px var(--rdim)}
-
-.hint{
-  font-size:12px;color:var(--text3);
-  text-align:center;margin-bottom:20px;
-  max-width:312px;transition:color .18s;
-}
-.hint.err{color:var(--red)}
-
-.btn{
-  width:100%;max-width:312px;
-  background:var(--accent);color:#fff;
-  border:none;border-radius:var(--r-md);
-  padding:16px;
-  font-family:var(--font);font-size:17px;font-weight:600;
-  cursor:pointer;letter-spacing:-.01em;
-  transition:opacity .15s,transform .12s;
-}
-.btn:hover{opacity:.9}
-.btn:active{transform:scale(.97)}
-.btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
-
-/* ─── HOME ───────────────────────────────────────────────────────────────── */
-#s-home{background:var(--bg)}
-
-.home-bar{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:18px 22px 10px;flex-shrink:0;
-}
-.home-name{
-  font-size:22px;font-weight:700;letter-spacing:-.04em;
-}
-.home-name span{color:var(--accent)}
-.status-badge{
-  display:flex;align-items:center;gap:6px;
-  background:var(--surface);border:1px solid var(--border2);
-  border-radius:var(--r-full);padding:6px 13px;
-  font-size:12px;font-weight:500;color:var(--text2);
-}
-.status-dot{
-  width:7px;height:7px;border-radius:50%;
-  background:var(--green);
-  animation:dot-breathe 2.8s ease-in-out infinite;
-}
-@keyframes dot-breathe{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.7)}}
-
-/* dial area */
-.dial-area{
-  flex:1;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-  padding:20px 24px;gap:18px;
-}
-.dial-eyebrow{
-  font-size:11px;font-weight:600;color:var(--text3);
-  text-transform:uppercase;letter-spacing:.14em;
-}
-.dial-wrap{width:100%;max-width:340px;position:relative}
-.dial-wrap input{
-  width:100%;background:var(--surface);
-  border:1.5px solid var(--border2);
-  border-radius:var(--r-xl);
-  padding:17px 62px 17px 22px;
-  font-family:var(--font);font-size:19px;font-weight:400;
-  color:var(--text);outline:none;
-  transition:border-color .18s,box-shadow .18s;
-  letter-spacing:-.015em;
-}
-.dial-wrap input::placeholder{color:var(--text3);font-size:16px}
-.dial-wrap input:focus{border-color:var(--border3)}
-.call-btn{
-  position:absolute;right:10px;top:50%;transform:translateY(-50%);
-  width:44px;height:44px;border-radius:50%;
-  background:var(--green);border:none;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  box-shadow:0 4px 18px rgba(50,213,131,.38);
-  transition:transform .12s,opacity .15s;
-}
-.call-btn:hover{opacity:.88}
-.call-btn:active{transform:translateY(-50%) scale(.89)}
-.call-btn:disabled{background:var(--surface3);box-shadow:none;cursor:not-allowed}
-.call-btn svg{width:20px;height:20px}
-
-/* online list */
-.online-area{
-  padding:0 22px 24px;flex-shrink:0;
-}
-.online-row{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:11px;
-}
-.online-label{
-  font-size:11px;font-weight:600;color:var(--text3);
-  text-transform:uppercase;letter-spacing:.12em;
-}
-.online-pill{
-  font-size:11px;color:var(--text3);
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--r-full);padding:2px 9px;
-}
-.chip-list{
-  display:flex;flex-wrap:wrap;gap:7px;
-  max-height:88px;overflow-y:auto;
-}
-.chip{
-  display:flex;align-items:center;gap:6px;
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--r-full);padding:6px 12px 6px 7px;
-  cursor:pointer;transition:border-color .15s,background .15s;
-}
-.chip:hover{border-color:var(--accent);background:var(--adim)}
-.chip:active{transform:scale(.95)}
-.chip-av{
-  width:24px;height:24px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:11px;font-weight:700;color:#fff;
-  flex-shrink:0;
-}
-.chip-name{font-size:13px;color:var(--text);font-weight:400}
-.no-one{font-size:13px;color:var(--text3);padding:4px 0}
-
-/* ─── CALLING SCREEN (outbound) ─────────────────────────────────────────── */
-#s-calling{
-  background:var(--bg);
-  align-items:center;justify-content:space-between;
-}
-.calling-body{
-  flex:1;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-  padding:24px 32px;gap:0;
-}
-.pulse-wrap{
-  position:relative;width:116px;height:116px;
+.wait-sub{
+  font-size:15px;color:var(--text2);
+  line-height:1.55;max-width:260px;
   margin-bottom:36px;
 }
-.pulse-ring{
-  position:absolute;border-radius:50%;
-  border:1.5px solid rgba(91,156,246,.28);
-  animation:pulse-out 2.2s ease-out infinite;
-}
-.pulse-ring:nth-child(1){inset:-14px;animation-delay:0s}
-.pulse-ring:nth-child(2){inset:-28px;border-color:rgba(91,156,246,.14);animation-delay:.7s}
-.pulse-ring:nth-child(3){inset:-44px;border-color:rgba(91,156,246,.07);animation-delay:1.4s}
-@keyframes pulse-out{
-  0%{transform:scale(.92);opacity:1}
-  100%{transform:scale(1.12);opacity:0}
-}
-.calling-av{
-  width:116px;height:116px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:48px;font-weight:700;color:#fff;
-  font-family:var(--font);position:relative;z-index:1;
-}
-.calling-name{
-  font-size:34px;font-weight:700;letter-spacing:-.05em;
-  margin-bottom:10px;text-align:center;
-}
-.calling-status{
-  font-size:16px;color:var(--text2);
-  display:flex;align-items:center;gap:2px;
-}
-.ldots span{
-  display:inline-block;
-  animation:ldot 1.5s ease-in-out infinite;
-}
-.ldots span:nth-child(2){animation-delay:.18s}
-.ldots span:nth-child(3){animation-delay:.36s}
-@keyframes ldot{0%,80%,100%{opacity:.2}40%{opacity:1}}
 
-.cancel-area{
-  width:100%;display:flex;align-items:center;justify-content:center;
-  padding-bottom:52px;flex-shrink:0;
+/* room ID display */
+.room-box{
+  display:flex;align-items:center;gap:10px;
+  background:var(--surface);
+  border:1px solid var(--border2);
+  border-radius:var(--r-md);
+  padding:14px 18px;
+  width:100%;max-width:320px;
+  margin-bottom:12px;
 }
-.end-circle{
-  width:70px;height:70px;border-radius:50%;
-  background:var(--red);border:none;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  box-shadow:0 8px 28px rgba(242,83,74,.42);
-  transition:transform .12s,opacity .15s;
+.room-id{
+  flex:1;font-size:15px;font-weight:500;
+  color:var(--text);letter-spacing:.02em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-.end-circle:active{transform:scale(.9)}
-.end-circle svg{width:28px;height:28px}
-
-/* ─── INCOMING CALL ───────────────────────────────────────────────────────── */
-#s-incoming{
-  background:transparent;
-  justify-content:flex-end;
-}
-.incoming-blur{
-  position:fixed;inset:0;
-  background:linear-gradient(180deg,rgba(8,8,18,.94) 0%,rgba(8,8,18,.99) 100%);
-  backdrop-filter:blur(40px) saturate(1.6);
-  -webkit-backdrop-filter:blur(40px) saturate(1.6);
-}
-.incoming-body{
-  position:relative;z-index:1;
-  width:100%;padding:44px 32px;
-  padding-bottom:calc(44px + var(--safe-b));
-  display:flex;flex-direction:column;align-items:center;gap:0;
-}
-.ring-av-wrap{
-  width:104px;height:104px;border-radius:50%;
-  position:relative;margin-bottom:24px;
-}
-.ring-av-wrap::before,.ring-av-wrap::after{
-  content:'';position:absolute;border-radius:50%;
-  border:1.5px solid rgba(255,255,255,.14);
-  animation:ring-grow 2.6s ease-out infinite;
-}
-.ring-av-wrap::before{inset:-12px}
-.ring-av-wrap::after{inset:-26px;border-color:rgba(255,255,255,.07);animation-delay:.9s}
-@keyframes ring-grow{
-  0%{transform:scale(1);opacity:1}
-  100%{transform:scale(1.65);opacity:0}
-}
-.ring-av{
-  width:100%;height:100%;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:42px;font-weight:700;color:#fff;
-  font-family:var(--font);
-}
-.inc-label{font-size:14px;color:var(--text2);margin-bottom:8px}
-.inc-name{
-  font-size:36px;font-weight:700;letter-spacing:-.05em;
-  margin-bottom:6px;text-align:center;
-}
-.inc-sub{font-size:15px;color:var(--text2);margin-bottom:56px}
-.inc-actions{
-  display:flex;align-items:center;justify-content:center;gap:60px;width:100%;
-}
-.inc-btn{
-  display:flex;flex-direction:column;align-items:center;gap:10px;
+.copy-btn{
   background:none;border:none;cursor:pointer;
-  transition:transform .14s;
+  color:var(--text2);padding:2px;
+  transition:color .15s;flex-shrink:0;
 }
-.inc-btn:active{transform:scale(.91)}
-.inc-circle{
-  width:70px;height:70px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  transition:opacity .15s;
-}
-.inc-circle:hover{opacity:.88}
-.inc-btn.decline .inc-circle{background:var(--red);box-shadow:0 8px 26px rgba(242,83,74,.48)}
-.inc-btn.accept  .inc-circle{background:var(--green);box-shadow:0 8px 26px rgba(50,213,131,.48)}
-.inc-btn.accept .inc-circle svg{animation:wiggle 1.3s ease-in-out infinite}
-@keyframes wiggle{
-  0%,100%{transform:rotate(0)}
-  20%{transform:rotate(14deg)}
-  40%{transform:rotate(-10deg)}
-  60%{transform:rotate(7deg)}
-  80%{transform:rotate(-4deg)}
-}
-.inc-btn-label{font-size:13px;color:var(--text2);font-weight:400}
+.copy-btn:hover{color:var(--accent)}
+.copy-btn.copied{color:var(--green)}
 
-/* ─── ACTIVE CALL ─────────────────────────────────────────────────────────── */
-#s-call{
-  background:var(--bg);
-  align-items:center;justify-content:space-between;
+.wait-hint{
+  font-size:13px;color:var(--text3);
+  margin-bottom:36px;
 }
-.call-topbar{
-  width:100%;display:flex;align-items:center;justify-content:center;
-  padding:16px 24px 0;flex-shrink:0;
+
+/* waiting indicator */
+.waiting-dots{
+  display:flex;align-items:center;gap:6px;
+  margin-bottom:10px;
+}
+.waiting-dots span{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--accent);
+  animation:dot-pulse 1.5s ease-in-out infinite;
+}
+.waiting-dots span:nth-child(2){animation-delay:.2s}
+.waiting-dots span:nth-child(3){animation-delay:.4s}
+@keyframes dot-pulse{
+  0%,80%,100%{transform:scale(.6);opacity:.3}
+  40%{transform:scale(1);opacity:1}
+}
+.waiting-label{font-size:13px;color:var(--text3)}
+
+/* ── CALL SCREEN ─────────────────────────────────────────────────────────── */
+#s-call{
+  justify-content:space-between;
+  background:var(--bg);
+}
+
+.call-top{
+  width:100%;display:flex;
+  align-items:center;justify-content:center;
+  padding-top:8px;flex-shrink:0;
 }
 .timer-pill{
   background:var(--green);color:#fff;
   font-size:13px;font-weight:700;
-  border-radius:var(--r-full);padding:5px 16px;
-  letter-spacing:.05em;font-variant-numeric:tabular-nums;
-  opacity:0;transition:opacity .4s;
+  border-radius:var(--r-full);
+  padding:5px 16px;
+  letter-spacing:.05em;
+  font-variant-numeric:tabular-nums;
+  opacity:0;transition:opacity .4s,background .3s;
 }
 .timer-pill.on{opacity:1}
 
-.call-body{
+/* center */
+.call-center{
   flex:1;display:flex;flex-direction:column;
   align-items:center;justify-content:center;
-  padding:16px 28px;gap:0;
+  gap:0;padding:12px 0;
 }
-.call-av-wrap{
-  position:relative;width:128px;height:128px;
-  margin-bottom:30px;
+
+/* animated circle */
+.call-circle-wrap{
+  position:relative;
+  width:130px;height:130px;
+  margin-bottom:28px;
 }
-.call-av-glow{
-  position:absolute;inset:-28px;border-radius:50%;
-  background:radial-gradient(circle,rgba(91,156,246,.12) 0%,transparent 68%);
-  animation:glow-breath 3.2s ease-in-out infinite;
+.call-glow{
+  position:absolute;inset:-24px;border-radius:50%;
+  background:radial-gradient(circle,rgba(91,156,246,.1) 0%,transparent 68%);
+  animation:glow-pulse 3s ease-in-out infinite;
 }
-@keyframes glow-breath{
+@keyframes glow-pulse{
   0%,100%{transform:scale(1);opacity:.8}
-  50%{transform:scale(1.18);opacity:.3}
+  50%{transform:scale(1.2);opacity:.3}
 }
-.call-av{
-  width:128px;height:128px;border-radius:50%;
+.call-circle{
+  width:130px;height:130px;border-radius:50%;
+  background:var(--surface2);
+  border:1.5px solid var(--border2);
   display:flex;align-items:center;justify-content:center;
-  font-size:54px;font-weight:700;color:#fff;
-  font-family:var(--font);position:relative;z-index:1;
+  position:relative;z-index:1;
 }
+.call-circle svg{width:48px;height:48px;opacity:.6}
+
+/* speaking ring */
 .speak-ring{
   position:absolute;inset:-5px;border-radius:50%;
   border:2.5px solid var(--green);
-  box-shadow:0 0 20px rgba(50,213,131,.38);
+  box-shadow:0 0 20px rgba(50,213,131,.35);
   opacity:0;transition:opacity .22s;
-  pointer-events:none;
+  pointer-events:none;z-index:2;
 }
 .speak-ring.on{opacity:1}
 
-.call-name{
-  font-size:30px;font-weight:700;letter-spacing:-.05em;
-  margin-bottom:10px;text-align:center;
+.call-status{
+  font-size:22px;font-weight:600;
+  letter-spacing:-.03em;margin-bottom:8px;
+  text-align:center;
 }
-.call-state{
-  font-size:15px;color:var(--text2);
-  min-height:22px;text-align:center;transition:opacity .3s;
+.call-sub{
+  font-size:14px;color:var(--text2);
+  text-align:center;min-height:20px;
 }
 
 /* wave */
 .wave{
   display:flex;align-items:center;gap:3px;
-  height:26px;margin-top:22px;
+  height:24px;margin-top:18px;
   opacity:0;transition:opacity .35s;
 }
 .wave.on{opacity:1}
@@ -437,36 +221,33 @@ body{
 .wave:not(.live) .wbar:nth-child(5){animation-delay:.24s}
 .wave:not(.live) .wbar:nth-child(6){animation-delay:.12s}
 .wave:not(.live) .wbar:nth-child(7){animation-delay:.06s}
-@keyframes wave-idle{0%,100%{height:4px}50%{height:15px}}
+@keyframes wave-idle{0%,100%{height:4px}50%{height:14px}}
 
 /* quality */
 .quality{
   display:flex;align-items:center;gap:7px;
-  margin-top:16px;font-size:12px;color:var(--text3);
+  margin-top:14px;font-size:12px;color:var(--text3);
   opacity:0;transition:opacity .4s;
 }
 .quality.on{opacity:1}
 .q-dot{
   width:7px;height:7px;border-radius:50%;
-  background:var(--green);transition:background .4s;
-  flex-shrink:0;
+  background:var(--green);flex-shrink:0;
+  transition:background .4s;
 }
 .q-dot.relay{background:var(--yellow)}
-.q-dot.bad  {background:var(--red)}
 
-/* call controls */
+/* controls */
 .call-controls{
   width:100%;
-  display:flex;flex-direction:column;align-items:center;
-  gap:28px;padding:0 28px;
-  padding-bottom:calc(38px + var(--safe-b));
+  display:flex;align-items:center;justify-content:center;
+  gap:24px;
+  padding-bottom:calc(20px + var(--safe-b));
   flex-shrink:0;
 }
-.ctrl-row{
-  display:flex;align-items:center;justify-content:center;gap:28px;
-}
 .ctrl{
-  display:flex;flex-direction:column;align-items:center;gap:9px;
+  display:flex;flex-direction:column;
+  align-items:center;gap:8px;
   background:none;border:none;cursor:pointer;
   transition:transform .12s;
 }
@@ -475,184 +256,107 @@ body{
   width:58px;height:58px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;
   background:var(--surface2);border:1px solid var(--border2);
-  transition:background .18s,border-color .18s;
-  color:var(--text);
+  color:var(--text);transition:background .18s,border-color .18s;
 }
 .ctrl-circle.active{background:var(--adim);border-color:var(--accent)}
 .ctrl-circle.muted {background:var(--rdim);border-color:var(--red);color:var(--red)}
-.ctrl-label{font-size:11px;color:var(--text3);font-weight:400;text-align:center}
+.ctrl-label{font-size:11px;color:var(--text3);font-weight:400}
 .ctrl-end{
-  width:74px;height:74px;border-radius:50%;
+  width:68px;height:68px;border-radius:50%;
   background:var(--red);border:none;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
-  box-shadow:0 8px 30px rgba(242,83,74,.44);
+  box-shadow:0 8px 28px rgba(242,83,74,.42);
   transition:transform .12s,opacity .15s;
 }
 .ctrl-end:hover{opacity:.9}
 .ctrl-end:active{transform:scale(.9)}
 
-/* ─── TOAST ──────────────────────────────────────────────────────────────── */
+/* ── ERROR SCREEN ────────────────────────────────────────────────────────── */
+#s-error{gap:16px;text-align:center}
+.err-icon{font-size:48px}
+.err-title{font-size:20px;font-weight:600;letter-spacing:-.03em}
+.err-msg{font-size:14px;color:var(--text2);max-width:260px;line-height:1.55}
+.btn-retry{
+  margin-top:8px;
+  background:var(--surface2);
+  color:var(--text);border:1px solid var(--border2);
+  border-radius:var(--r-md);padding:13px 28px;
+  font-family:var(--font);font-size:15px;font-weight:500;
+  cursor:pointer;transition:opacity .15s;
+}
+.btn-retry:hover{opacity:.8}
+
+/* ── TOAST ───────────────────────────────────────────────────────────────── */
 .toast{
-  position:fixed;bottom:calc(28px + var(--safe-b));left:50%;
-  transform:translateX(-50%) translateY(18px);
+  position:fixed;bottom:calc(24px + var(--safe-b));left:50%;
+  transform:translateX(-50%) translateY(16px);
   background:var(--surface2);border:1px solid var(--border2);
-  border-radius:var(--r-md);padding:11px 20px;
-  font-size:14px;color:var(--text);white-space:nowrap;
+  border-radius:var(--r-md);padding:10px 18px;
+  font-size:13px;color:var(--text);white-space:nowrap;
   opacity:0;pointer-events:none;z-index:9999;
-  transition:opacity .22s,transform .22s;
-  box-shadow:0 8px 32px rgba(0,0,0,.5);
+  transition:opacity .2s,transform .2s;
+  box-shadow:0 8px 28px rgba(0,0,0,.5);
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.toast.terror{border-color:var(--red)}
-.toast.tok   {border-color:var(--green)}
-
-/* ─── AVATAR PALETTE ─────────────────────────────────────────────────────── */
-.av0{background:linear-gradient(135deg,#5b9cf6,#7b6cf6)}
-.av1{background:linear-gradient(135deg,#32d583,#00c3ff)}
-.av2{background:linear-gradient(135deg,#ffc940,#ff7830)}
-.av3{background:linear-gradient(135deg,#f2534a,#f72585)}
-.av4{background:linear-gradient(135deg,#c084fc,#7c3aed)}
-.av5{background:linear-gradient(135deg,#67e8f9,#0ea5e9)}
+.toast.tok  {border-color:var(--green)}
+.toast.terr {border-color:var(--red)}
 </style>
 </head>
 <body>
 
-<!-- ══ REGISTER SCREEN ══════════════════════════════════════════════════════ -->
-<div class="screen active" id="s-register">
-  <div class="logo-mark">
-    <svg viewBox="0 0 34 34" fill="none">
-      <path d="M9 22c0-4.4 3.6-8 8-8s8 3.6 8 8" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
-      <circle cx="17" cy="11" r="4.5" stroke="#fff" stroke-width="2.2"/>
+<!-- WAITING SCREEN -->
+<div class="screen active" id="s-wait">
+  <div class="logo">
+    <svg viewBox="0 0 30 30" fill="none">
+      <path d="M9 20c0-3.9 3.1-7 7-7s7 3.1 7 7" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="16" cy="10" r="4" stroke="#fff" stroke-width="2"/>
     </svg>
   </div>
-  <div class="reg-title">VoiceLink</div>
-  <div class="reg-sub">Choose a username to start making free, private voice calls.</div>
-  <div class="field">
-    <input type="text" id="un-input" placeholder="username"
-           maxlength="24" autocomplete="off" autocapitalize="none" spellcheck="false"/>
+  <div class="wait-title">Waiting for peer…</div>
+  <div class="wait-sub">Share this room link. The call starts automatically when they join.</div>
+
+  <div class="room-box">
+    <div class="room-id" id="room-id-display">—</div>
+    <button class="copy-btn" id="copy-btn" title="Copy link">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="9" y="9" width="13" height="13" rx="2"/>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+      </svg>
+    </button>
   </div>
-  <div class="hint" id="reg-hint">2–24 chars · letters, numbers, _ . -</div>
-  <button class="btn" id="reg-btn" disabled>Let's go</button>
+  <div class="wait-hint" id="wait-hint">Anyone with this link can join</div>
+
+  <div class="waiting-dots">
+    <span></span><span></span><span></span>
+  </div>
+  <div class="waiting-label" id="wait-label">Connecting to server…</div>
 </div>
 
-<!-- ══ HOME SCREEN ══════════════════════════════════════════════════════════ -->
-<div class="screen from-bottom" id="s-home">
-  <div class="home-bar">
-    <div class="home-name">Hey, <span id="my-name">—</span></div>
-    <div class="status-badge">
-      <div class="status-dot" id="conn-dot"></div>
-      <span id="conn-text">Online</span>
-    </div>
+<!-- CALL SCREEN -->
+<div class="screen from-up" id="s-call">
+  <div class="call-top">
+    <div class="timer-pill" id="call-timer">0:00</div>
   </div>
 
-  <div class="dial-area">
-    <div class="dial-eyebrow">Start a call</div>
-    <div class="dial-wrap">
-      <input type="text" id="dial-input" placeholder="enter username"
-             maxlength="24" autocomplete="off" autocapitalize="none" spellcheck="false"/>
-      <button class="call-btn" id="dial-btn" disabled title="Call">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"
-             stroke-linecap="round" stroke-linejoin="round">
+  <div class="call-center">
+    <div class="call-circle-wrap">
+      <div class="call-glow"></div>
+      <div class="call-circle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07
                    19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3
                    a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91
                    a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7
                    A2 2 0 0 1 22 16.92z"/>
         </svg>
-      </button>
-    </div>
-  </div>
-
-  <div class="online-area">
-    <div class="online-row">
-      <div class="online-label">Online now</div>
-      <div class="online-pill" id="online-count">0</div>
-    </div>
-    <div class="chip-list" id="chip-list">
-      <div class="no-one" id="no-one">No one else online yet.</div>
-    </div>
-  </div>
-</div>
-
-<!-- ══ CALLING SCREEN ═══════════════════════════════════════════════════════ -->
-<div class="screen from-bottom" id="s-calling">
-  <div style="height:calc(var(--safe-t) + 24px);flex-shrink:0"></div>
-  <div class="calling-body">
-    <div class="pulse-wrap">
-      <div class="pulse-ring"></div>
-      <div class="pulse-ring"></div>
-      <div class="pulse-ring"></div>
-      <div class="calling-av" id="calling-av"></div>
-    </div>
-    <div class="calling-name" id="calling-name">—</div>
-    <div class="calling-status">
-      Calling<span class="ldots"><span>.</span><span>.</span><span>.</span></span>
-    </div>
-  </div>
-  <div class="cancel-area">
-    <button class="end-circle" id="cancel-btn" title="Cancel">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"
-           stroke-linecap="round" stroke-linejoin="round">
-        <line x1="18" y1="6" x2="6" y2="18"/>
-        <line x1="6"  y1="6" x2="18" y2="18"/>
-      </svg>
-    </button>
-  </div>
-</div>
-
-<!-- ══ INCOMING CALL ════════════════════════════════════════════════════════ -->
-<div class="screen from-bottom" id="s-incoming">
-  <div class="incoming-blur"></div>
-  <div class="incoming-body">
-    <div class="ring-av-wrap">
-      <div class="ring-av" id="inc-av"></div>
-    </div>
-    <div class="inc-label">Incoming voice call</div>
-    <div class="inc-name"  id="inc-name">—</div>
-    <div class="inc-sub">VoiceLink</div>
-    <div class="inc-actions">
-      <button class="inc-btn decline" id="decline-btn">
-        <div class="inc-circle">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-               stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"/>
-            <line x1="6"  y1="6" x2="18" y2="18"/>
-          </svg>
-        </div>
-        <span class="inc-btn-label">Decline</span>
-      </button>
-      <button class="inc-btn accept" id="accept-btn">
-        <div class="inc-circle">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-               stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07
-                     19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3
-                     a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91
-                     a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7
-                     A2 2 0 0 1 22 16.92z"/>
-          </svg>
-        </div>
-        <span class="inc-btn-label">Accept</span>
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ══ ACTIVE CALL ══════════════════════════════════════════════════════════ -->
-<div class="screen from-bottom" id="s-call">
-  <div class="call-topbar">
-    <div class="timer-pill" id="call-timer">0:00</div>
-  </div>
-
-  <div class="call-body">
-    <div class="call-av-wrap">
-      <div class="call-av-glow"></div>
-      <div class="call-av"   id="call-av"></div>
+      </div>
       <div class="speak-ring" id="speak-ring"></div>
     </div>
-    <div class="call-name"  id="call-name">—</div>
-    <div class="call-state" id="call-state">Connecting…</div>
-    <div class="wave"       id="wave">
+    <div class="call-status" id="call-status">Connecting…</div>
+    <div class="call-sub"    id="call-sub"></div>
+    <div class="wave"        id="wave">
       <div class="wbar"></div><div class="wbar"></div><div class="wbar"></div>
       <div class="wbar"></div><div class="wbar"></div><div class="wbar"></div>
       <div class="wbar"></div>
@@ -660,126 +364,138 @@ body{
     <div class="quality" id="quality">
       <div class="q-dot" id="q-dot"></div>
       <span id="q-text">—</span>
-      <span id="q-turn-usage" style="margin-left:8px;color:var(--text3)"></span>
+      <span id="q-turn-usage" style="margin-left:4px;color:var(--text3)"></span>
     </div>
   </div>
 
   <div class="call-controls">
-    <div class="ctrl-row">
-      <!-- Mute -->
-      <button class="ctrl" id="mute-btn">
-        <div class="ctrl-circle" id="mute-circle">
-          <svg id="mute-icon" width="22" height="22" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
-            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-            <line x1="12" y1="19" x2="12" y2="23"/>
-            <line x1="8"  y1="23" x2="16" y2="23"/>
-          </svg>
-        </div>
-        <span class="ctrl-label" id="mute-label">Mute</span>
-      </button>
-
-      <!-- End -->
-      <button class="ctrl-end" id="end-btn" title="End call">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-             stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45
-                   12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2
-                   19.79 19.79 0 0 1-8.63-3.07A19.42 19.42 0 0 1 3.08 12.7
-                   2 2 0 0 1 4.35 10.1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81
-                   2 2 0 0 1-.45 2.11L7.33 7.9"/>
-          <line x1="1" y1="1" x2="23" y2="23"/>
+    <button class="ctrl" id="mute-btn">
+      <div class="ctrl-circle" id="mute-circle">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" y1="19" x2="12" y2="23"/>
+          <line x1="8"  y1="23" x2="16" y2="23"/>
         </svg>
-      </button>
+      </div>
+      <span class="ctrl-label" id="mute-label">Mute</span>
+    </button>
 
-      <!-- Speaker -->
-      <button class="ctrl" id="speaker-btn">
-        <div class="ctrl-circle" id="speaker-circle">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
-          </svg>
-        </div>
-        <span class="ctrl-label">Speaker</span>
-      </button>
-    </div>
+    <button class="ctrl-end" id="end-btn" title="End call">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+           stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45
+                 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2
+                 19.79 19.79 0 0 1-8.63-3.07A19.42 19.42 0 0 1 3.08 12.7
+                 2 2 0 0 1 4.35 10.1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81
+                 2 2 0 0 1-.45 2.11L7.33 7.9"/>
+        <line x1="1" y1="1" x2="23" y2="23"/>
+      </svg>
+    </button>
+
+    <button class="ctrl" id="speaker-btn">
+      <div class="ctrl-circle" id="speaker-circle">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+        </svg>
+      </div>
+      <span class="ctrl-label">Speaker</span>
+    </button>
   </div>
 </div>
 
-<!-- hidden audio for remote stream -->
-<audio id="remote-audio" autoplay playsinline></audio>
+<!-- ERROR SCREEN -->
+<div class="screen from-up" id="s-error">
+  <div class="err-icon">⚠️</div>
+  <div class="err-title" id="err-title">Something went wrong</div>
+  <div class="err-msg"   id="err-msg">An unexpected error occurred.</div>
+  <button class="btn-retry" id="retry-btn">Try again</button>
+</div>
 
-<!-- toast -->
+<!-- hidden remote audio -->
+<audio id="remote-audio" autoplay playsinline></audio>
 <div class="toast" id="toast"></div>
 
-<!-- Socket.io -->
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-
 <script>
 'use strict';
-// ALL FIXES APPLIED — see comments inline
 
 /* ══ CONFIG ══════════════════════════════════════════════════════════════════
-   Replace SIGNAL_URL with your actual Koyeb deployment URL.
-   It looks like: https://your-app-name-xxxx.koyeb.app
+   SIGNAL_URL: your Koyeb signaling server URL
    ══════════════════════════════════════════════════════════════════════════ */
 const SIGNAL_URL = 'https://vocational-simone-aspandit374-66898499.koyeb.app';
 
-/* ICE config — TURN loaded upfront but P2P always wins by ICE priority */
+/* ══ ROOM ID ══════════════════════════════════════════════════════════════════
+   Read from URL: ?room=abc123
+   If not present, generate a random one and redirect.
+   This makes sharing simple — just copy the URL.
+   ══════════════════════════════════════════════════════════════════════════ */
+function getRoomId() {
+  const params = new URLSearchParams(window.location.search);
+  let room = params.get('room');
+  if (!room) {
+    // Generate a random readable room ID and redirect
+    room = Math.random().toString(36).slice(2, 8) +
+           Math.random().toString(36).slice(2, 8);
+    const url = new URL(window.location.href);
+    url.searchParams.set('room', room);
+    window.history.replaceState({}, '', url.toString());
+  }
+  return room.trim().toLowerCase().slice(0, 64);
+}
+
+const ROOM_ID = getRoomId();
+
+/* ══ ICE CONFIG ══════════════════════════════════════════════════════════════ */
 const ICE = {
   iceServers: [
     { urls: 'stun:stun.cloudflare.com:3478' },
     { urls: 'stun:stun.l.google.com:19302'  },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
-    // TURN appended after fetchTurn() resolves
+    // TURN appended by fetchTurn() at call start
   ],
   iceTransportPolicy:   'all',
   bundlePolicy:         'max-bundle',
   rtcpMuxPolicy:        'require',
-  iceCandidatePoolSize: 0,  // 0 = don't pre-gather, gather fresh when call starts
+  iceCandidatePoolSize: 0,
 };
 
-/* ══ STATE ══════════════════════════════════════════════════════════════════ */
-let sock           = null;
-let myName         = null;
-let peer           = null;   // RTCPeerConnection
-let localStream    = null;
-let remoteUser     = null;
-let pendingCallId  = null;
-let isMuted        = false;
-let isSpeaker      = false;
-let timerID        = null;
-let timerSecs      = 0;
-let audioCtx       = null;
-let analyser       = null;
-let rafID          = null;
-let iceBuffer      = [];     // ICE candidates buffered before remote desc
+/* ══ STATE ═══════════════════════════════════════════════════════════════════ */
+let sock         = null;
+let peer         = null;
+let localStream  = null;
+let myRole       = null;   // 'initiator' | 'responder'
+let iceBuffer    = [];
+let isMuted      = false;
+let isSpeaker    = false;
+let timerID      = null;
+let timerSecs    = 0;
+let audioCtx     = null;
+let analyser     = null;
+let rafID        = null;
+let statsTimer   = null;
 
-/* ══ AVATAR HELPERS ══════════════════════════════════════════════════════════ */
-function avColor(name) {
-  let h = 0;
-  for (const c of name) h = c.charCodeAt(0) + ((h << 5) - h);
-  return 'av' + (Math.abs(h) % 6);
-}
-function avInitial(name) { return name[0].toUpperCase(); }
-function setAv(el, name) {
-  el.textContent = avInitial(name);
-  el.className   = el.className.replace(/\bav\d\b/g, '').trim() + ' ' + avColor(name);
-}
-
-/* ══ SCREEN TRANSITIONS ══════════════════════════════════════════════════════ */
+/* ══ UI HELPERS ══════════════════════════════════════════════════════════════ */
 function show(id) {
-  document.querySelectorAll('.screen').forEach(s => {
-    s.classList.remove('active');
-  });
-  const el = document.getElementById(id);
-  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('active')));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() =>
+      document.getElementById(id).classList.add('active')
+    )
+  );
 }
 
-/* ══ TOAST ════════════════════════════════════════════════════════════════════ */
+function showError(title, msg, retryable = true) {
+  document.getElementById('err-title').textContent = title;
+  document.getElementById('err-msg').textContent   = msg;
+  document.getElementById('retry-btn').style.display = retryable ? '' : 'none';
+  show('s-error');
+}
+
 let toastT = null;
 function toast(msg, type = '') {
   const el = document.getElementById('toast');
@@ -790,28 +506,31 @@ function toast(msg, type = '') {
   toastT = setTimeout(() => el.classList.remove('show'), 3000);
 }
 
-/* ══ TURN CREDENTIALS ════════════════════════════════════════════════════════
- * Fetched once on register. Credentials are ready before any call starts.
- * Browser ICE priority guarantees P2P (host/srflx) is always tried first.
- * TURN (relay) only activates if P2P genuinely fails — no code needed.
- *
- * IMPROVEMENT 3 kept: UDP-only TURN — skip TCP/TLS relay candidates.
- * TCP TURN needed for <5% of users. Skipping it reduces relay overhead.
- * ══════════════════════════════════════════════════════════════════════════ */
+/* ══ ROOM ID DISPLAY ═════════════════════════════════════════════════════════ */
+const fullLink = window.location.href;
+document.getElementById('room-id-display').textContent = fullLink;
 
-// FIX #2: Fetch TURN fresh per call — not cached across sessions.
-// If Koyeb restarts, old credentials in ICE array are gone but turnLoaded
-// was still true, causing calls to start with STUN only silently.
-// Now we always fetch fresh credentials at call time. TTL is 3600s (1hr)
-// which is set on the server side.
+document.getElementById('copy-btn').addEventListener('click', () => {
+  navigator.clipboard.writeText(fullLink).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.classList.add('copied');
+    toast('Link copied!', 'ok');
+    setTimeout(() => btn.classList.remove('copied'), 2000);
+  });
+});
+
+document.getElementById('retry-btn').addEventListener('click', () => {
+  window.location.reload();
+});
+
+/* ══ TURN CREDENTIALS — fetched fresh per call ═══════════════════════════════ */
 async function fetchTurn() {
   try {
-    // Always reset TURN entries and re-fetch fresh credentials per call
-    ICE.iceServers = ICE.iceServers.filter(s =>
-      !s.urls || (typeof s.urls === 'string'
-        ? !s.urls.startsWith('turn:')
-        : !s.urls[0].startsWith('turn:'))
-    );
+    // Strip any existing TURN entries first
+    ICE.iceServers = ICE.iceServers.filter(s => {
+      const u = Array.isArray(s.urls) ? s.urls[0] : s.urls;
+      return !u || !u.startsWith('turn:');
+    });
     const res  = await fetch(SIGNAL_URL + '/turn');
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data    = await res.json();
@@ -821,151 +540,70 @@ async function fetchTurn() {
       if (!s.username || !s.credential) continue;
       const urls = Array.isArray(s.urls) ? s.urls : [s.urls];
       for (const url of urls) {
-        // UDP TURN only — skip TCP and TLS variants (FIX #3 kept)
-        if (!url.startsWith('turn:')) continue;
-        if (url.includes('transport=tcp')) continue;
+        if (!url.startsWith('turn:')) continue;       // UDP TURN only
+        if (url.includes('transport=tcp')) continue;  // skip TCP TURN
         ICE.iceServers.push({ urls: url, username: s.username, credential: s.credential });
       }
     }
-    console.log('[TURN] Fresh credentials loaded. ICE servers:', ICE.iceServers.length);
+    console.log('[TURN] Ready. Servers:', ICE.iceServers.length);
   } catch (e) {
-    console.warn('[TURN] Fetch failed — STUN only:', e.message);
+    console.warn('[TURN] Failed — STUN only:', e.message);
   }
 }
 
-/* ══ REGISTER UI ══════════════════════════════════════════════════════════════ */
-const UN_RE = /^[a-z0-9._-]{2,24}$/;
-
-const unInput = document.getElementById('un-input');
-const regBtn  = document.getElementById('reg-btn');
-const regHint = document.getElementById('reg-hint');
-
-unInput.addEventListener('input', () => {
-  const v = unInput.value.toLowerCase().trim();
-  regBtn.disabled = !UN_RE.test(v);
-  unInput.classList.remove('err');
-  regHint.className   = 'hint';
-  regHint.textContent = '2–24 chars · letters, numbers, _ . -';
-});
-unInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !regBtn.disabled) doRegister(); });
-regBtn.addEventListener('click', doRegister);
-
-function doRegister() {
-  const name = unInput.value.toLowerCase().trim();
-  if (!UN_RE.test(name)) return;
-  regBtn.disabled    = true;
-  regBtn.textContent = 'Connecting…';
-  initSocket(name);
-}
-
-function regError(msg) {
-  regHint.className   = 'hint err';
-  regHint.textContent = msg;
-  unInput.classList.add('err');
-  regBtn.disabled     = false;
-  regBtn.textContent  = "Let's go";
-}
-
 /* ══ SOCKET ══════════════════════════════════════════════════════════════════ */
-function initSocket(username) {
+function connect() {
+  document.getElementById('wait-label').textContent = 'Connecting to server…';
+
   sock = io(SIGNAL_URL, {
     transports:          ['websocket'],
     reconnection:        true,
-    reconnectionAttempts:12,
+    reconnectionAttempts:10,
     reconnectionDelay:   2000,
   });
 
   sock.on('connect', () => {
     console.log('[Socket] Connected:', sock.id);
-    sock.emit('register', { username });
+    document.getElementById('wait-label').textContent = 'Waiting for peer…';
+    sock.emit('join-room', { roomId: ROOM_ID });
   });
 
-  sock.on('registered', ({ username: name }) => {
-    myName = name;
-    document.getElementById('my-name').textContent = name;
-    setConnected(true);
-    // FIX #2: Do NOT fetch TURN at register. Fetch fresh per call in startRTC.
-    setupHomeUI();
-    show('s-home');
+  sock.on('room-joined', ({ role }) => {
+    myRole = role;
+    console.log('[Room] Joined as:', role);
+    document.getElementById('wait-label').textContent =
+      role === 'initiator' ? 'Waiting for peer…' : 'Peer found — connecting…';
   });
 
-  // FIX #11: Populate online list from server on join
-  sock.on('online-list', ({ users: list }) => {
-    list.forEach(u => { if (u !== myName) onlineSet.add(u); });
-    renderChips();
-    document.getElementById('online-count').textContent = onlineSet.size;
+  sock.on('room-full', ({ msg }) => {
+    showError('Room Full', msg, false);
   });
 
-  sock.on('username-taken',   ({ msg }) => regError(msg));
-  sock.on('username-invalid', ({ msg }) => regError(msg));
-
-  sock.on('disconnect', () => setConnected(false));
-  sock.on('reconnect',  () => {
-    setConnected(true);
-    sock.emit('register', { username: myName });
+  sock.on('room-invalid', ({ msg }) => {
+    showError('Invalid Room', msg, true);
   });
 
-  /* ── Presence ── */
-  sock.on('presence', ({ type, username: u }) => {
-    if (type === 'online'  && u !== myName) onlineSet.add(u);
-    if (type === 'offline') onlineSet.delete(u);
-    renderChips();
-    document.getElementById('online-count').textContent = onlineSet.size;
+  // Second peer joined — initiator starts WebRTC
+  sock.on('peer-joined', async () => {
+    console.log('[Room] Peer joined — starting RTC as initiator.');
+    document.getElementById('wait-label').textContent = 'Peer found — connecting…';
+    show('s-call');
+    await startRTC(true);
   });
 
-  /* ── Incoming call ── */
-  sock.on('incoming-call', ({ from, callId }) => {
-    if (peer) {
-      // Already in a call — auto-decline
-      sock.emit('call-answer', { to: from, callId, accepted: false });
-      return;
+  // Responder: received offer from initiator
+  sock.on('rtc-offer', async ({ sdp }) => {
+    if (!peer) {
+      show('s-call');
+      await startRTC(false);
     }
-    remoteUser    = from;
-    pendingCallId = callId;
-    setAv(document.getElementById('inc-av'),   from);
-    setAv(document.getElementById('call-av'),  from);
-    document.getElementById('inc-name').textContent  = from;
-    document.getElementById('call-name').textContent = from;
-    show('s-incoming');
-  });
-
-  sock.on('call-ringing',  ({ callId }) => { pendingCallId = callId; });
-
-  sock.on('call-accepted', async ({ from, callId }) => {
-    if (callId !== pendingCallId) return;
-    // Small delay so callee's accept-btn handler finishes showing s-call screen
-    setTimeout(() => startRTC(from, true /* initiator */), 200);
-  });
-
-  sock.on('call-declined', ({ from }) => {
-    toast(from + ' declined.', 'error');
-    cleanupCall();
-    show('s-home');
-  });
-
-  sock.on('call-ended', ({ from }) => {
-    if (from !== remoteUser) return;
-    toast('Call ended.');
-    cleanupCall();
-    show('s-home');
-  });
-
-  sock.on('call-failed', ({ reason }) => {
-    toast(reason, 'error');
-    cleanupCall();
-    show('s-home');
-  });
-
-  /* ── WebRTC signaling ── */
-  sock.on('rtc-offer', async ({ from, sdp }) => {
-    if (!peer) await startRTC(from, false /* not initiator */);
     try {
       await peer.setRemoteDescription(new RTCSessionDescription(sdp));
       await flushIceBuffer();
-      const ans = await peer.createAnswer();
-      const mungedAns = { type: ans.type, sdp: opusMunge(ans.sdp) };
-      await peer.setLocalDescription(mungedAns);
-      sock.emit('rtc-answer', { to: from, sdp: peer.localDescription });
+      let answer = await peer.createAnswer();
+      answer = { type: answer.type, sdp: opusMunge(answer.sdp) };
+      await peer.setLocalDescription(answer);
+      sock.emit('rtc-answer', { sdp: peer.localDescription });
     } catch (e) { console.error('[RTC] offer handler:', e); }
   });
 
@@ -978,203 +616,83 @@ function initSocket(username) {
   });
 
   sock.on('rtc-ice', async ({ candidate }) => {
-    if (!peer) return;
-    if (!peer.remoteDescription) { iceBuffer.push(candidate); return; }
+    if (!peer || !peer.remoteDescription) {
+      iceBuffer.push(candidate); return;
+    }
     try { await peer.addIceCandidate(new RTCIceCandidate(candidate)); } catch (_) {}
   });
-}
 
-async function flushIceBuffer() {
-  for (const c of iceBuffer) {
-    try { await peer.addIceCandidate(new RTCIceCandidate(c)); } catch (_) {}
-  }
-  iceBuffer = [];
-}
-
-function setConnected(on) {
-  const dot  = document.getElementById('conn-dot');
-  const text = document.getElementById('conn-text');
-  dot.style.background  = on ? 'var(--green)' : 'var(--red)';
-  text.textContent      = on ? 'Online' : 'Reconnecting…';
-}
-
-/* ══ HOME UI ══════════════════════════════════════════════════════════════════ */
-const onlineSet = new Set();
-
-function setupHomeUI() {
-  const dialInput = document.getElementById('dial-input');
-  const dialBtn   = document.getElementById('dial-btn');
-
-  dialInput.addEventListener('input', () => {
-    const v = dialInput.value.trim().toLowerCase();
-    dialBtn.disabled = !UN_RE.test(v) || v === myName;
+  // Other peer left or hung up
+  sock.on('peer-left', () => {
+    toast('Peer disconnected.');
+    cleanupCall();
+    // Go back to waiting
+    document.getElementById('wait-label').textContent = 'Peer left — waiting for new peer…';
+    show('s-wait');
+    // Re-join the room
+    if (sock.connected) sock.emit('join-room', { roomId: ROOM_ID });
   });
-  dialInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter') {
-      const v = e.target.value.trim().toLowerCase();
-      if (UN_RE.test(v) && v !== myName) callUser(v);
-    }
+
+  sock.on('disconnect', () => {
+    console.log('[Socket] Disconnected.');
+    document.getElementById('wait-label').textContent = 'Reconnecting…';
   });
-  dialBtn.addEventListener('click', () => {
-    const v = document.getElementById('dial-input').value.trim().toLowerCase();
-    if (UN_RE.test(v) && v !== myName) callUser(v);
+
+  sock.on('reconnect', () => {
+    console.log('[Socket] Reconnected.');
+    sock.emit('join-room', { roomId: ROOM_ID });
   });
 }
 
-function renderChips() {
-  const list  = document.getElementById('chip-list');
-  const noone = document.getElementById('no-one');
-  if (onlineSet.size === 0) {
-    list.innerHTML = '';
-    list.appendChild(noone);
-    noone.style.display = '';
-    return;
-  }
-  noone.style.display = 'none';
-  // Remove chips that went offline
-  [...list.querySelectorAll('.chip')].forEach(c => {
-    if (!onlineSet.has(c.dataset.user)) c.remove();
-  });
-  // Add new ones
-  for (const u of onlineSet) {
-    if (list.querySelector(`[data-user="${u}"]`)) continue;
-    const chip = document.createElement('div');
-    chip.className    = 'chip';
-    chip.dataset.user = u;
-    chip.innerHTML    = `<div class="chip-av ${avColor(u)}">${avInitial(u)}</div>
-                         <span class="chip-name">${u}</span>`;
-    chip.addEventListener('click', () => {
-      document.getElementById('dial-input').value = u;
-      document.getElementById('dial-btn').disabled = (u === myName);
-    });
-    list.appendChild(chip);
-  }
-}
+/* ══ WebRTC ══════════════════════════════════════════════════════════════════ */
+async function startRTC(asInitiator) {
+  // Fetch fresh TURN credentials at call start
+  await fetchTurn();
 
-/* ══ INITIATE CALL ════════════════════════════════════════════════════════════ */
-function callUser(target) {
-  if (peer) { toast('Already in a call.', 'error'); return; }
-  remoteUser = target;
-  setAv(document.getElementById('calling-av'), target);
-  document.getElementById('calling-name').textContent = target;
-  setAv(document.getElementById('call-av'),  target);
-  document.getElementById('call-name').textContent = target;
-  show('s-calling');
-  sock.emit('call-request', { to: target, from: myName });
-}
-
-document.getElementById('cancel-btn').addEventListener('click', () => {
-  if (remoteUser) sock.emit('call-end', { to: remoteUser });
-  cleanupCall();
-  show('s-home');
-});
-
-/* ══ ACCEPT / DECLINE ════════════════════════════════════════════════════════ */
-document.getElementById('accept-btn').addEventListener('click', async () => {
-  if (!pendingCallId) return;
-  // FIX #10: If mic denied, dismiss call screen properly
-  try {
-    localStream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation:  { ideal: true },
-        noiseSuppression:  { ideal: true },
-        autoGainControl:   { ideal: true },
-        sampleRate:        { ideal: 48000 },
-        channelCount:      { ideal: 1 },
-        latency:           { ideal: 0 },
-      },
-      video: false,
-    });
-  } catch (e) {
-    toast('Mic access denied — allow in browser settings.', 'error');
-    // FIX #10: Decline the call and go back to home
-    sock.emit('call-answer', { to: remoteUser, callId: pendingCallId, accepted: false });
-    remoteUser    = null;
-    pendingCallId = null;
-    show('s-home');
-    return;
-  }
-  // FIX #4: Create peer connection NOW before sending accept,
-  // so ICE candidates from caller don't arrive before peer exists.
-  // startRTC will be called when rtc-offer arrives, but we need
-  // iceBuffer to exist from this moment.
-  iceBuffer = [];
-  sock.emit('call-answer', { to: remoteUser, callId: pendingCallId, accepted: true });
-  document.getElementById('call-state').textContent = 'Connecting…';
-  show('s-call');
-});
-
-document.getElementById('decline-btn').addEventListener('click', () => {
-  if (pendingCallId) sock.emit('call-answer', { to: remoteUser, callId: pendingCallId, accepted: false });
-  remoteUser    = null;
-  pendingCallId = null;
-  show('s-home');
-});
-
-/* ══ WebRTC CORE ══════════════════════════════════════════════════════════════ */
-async function startRTC(peerName, asInitiator) {
-  remoteUser = peerName;
-
-  // Request microphone — skip if callee already got it in accept-btn handler
+  // Get microphone
   if (!localStream) {
     try {
       localStream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          echoCancellation:  { ideal: true },
-          noiseSuppression:  { ideal: true },
-          autoGainControl:   { ideal: true },
-          sampleRate:        { ideal: 48000 },
-          channelCount:      { ideal: 1 },
-          latency:           { ideal: 0 },
+          echoCancellation: { ideal: true },
+          noiseSuppression: { ideal: true },
+          autoGainControl:  { ideal: true },
+          sampleRate:       { ideal: 48000 },
+          channelCount:     { ideal: 1 },
+          latency:          { ideal: 0 },
         },
         video: false,
       });
     } catch (e) {
-      toast('Mic access denied — allow in browser settings.', 'error');
-      cleanupCall();
-      show('s-home');
+      showError('Microphone Denied',
+        'Please allow microphone access in your browser settings, then reload.', true);
       return;
     }
   }
 
-  // Wait for TURN to be ready before creating peer
-  // so all candidates (host, srflx, relay) are gathered together.
-  // Browser ICE priority handles the rest: host > srflx > relay.
-  // P2P wins automatically if it can work.
-  await fetchTurn();
-
-  peer = new RTCPeerConnection(ICE);
+  peer    = new RTCPeerConnection(ICE);
   iceBuffer = [];
 
   localStream.getAudioTracks().forEach(t => peer.addTrack(t, localStream));
 
-  // Trickle all candidates as gathered — browser orders them by priority
+  // Trickle ICE
   peer.onicecandidate = ({ candidate }) => {
     if (!candidate) return;
-    sock.emit('rtc-ice', { to: peerName, candidate: candidate.toJSON() });
+    sock.emit('rtc-ice', { candidate: candidate.toJSON() });
     console.log('[ICE] Gathered:', candidate.type, candidate.protocol || '');
   };
 
-  // IMPROVEMENT 2: ICE restart on failure.
-  // If ICE fails, caller sends a fresh offer with iceRestart:true
-  // to re-gather candidates. Fixes first-call failure on bad networks.
-  let _iceRestartAttempted = false;
+  // ICE restart on failure — caller re-offers with fresh candidates
+  let iceRestartDone = false;
   peer.oniceconnectionstatechange = () => {
-    const st = peer.iceConnectionState;
-    console.log('[ICE] State:', st);
-    if (st === 'failed' && !_iceRestartAttempted && peer) {
-      _iceRestartAttempted = true;
-      console.log('[ICE] Failed — restarting ICE.');
+    console.log('[ICE] State:', peer.iceConnectionState);
+    if (peer.iceConnectionState === 'failed' && !iceRestartDone && peer) {
+      iceRestartDone = true;
+      console.log('[ICE] Failed — restarting.');
       if (asInitiator) {
         peer.createOffer({ iceRestart: true })
-          .then(offer => {
-            offer = { type: offer.type, sdp: opusMunge(offer.sdp) };
-            return peer.setLocalDescription(offer);
-          })
-          .then(() => {
-            sock.emit('rtc-offer', { to: peerName, sdp: peer.localDescription });
-            console.log('[ICE] Restart offer sent.');
-          })
+          .then(o => { o = { type: o.type, sdp: opusMunge(o.sdp) }; return peer.setLocalDescription(o); })
+          .then(() => { sock.emit('rtc-offer', { sdp: peer.localDescription }); })
           .catch(e => console.warn('[ICE] Restart error:', e.message));
       } else {
         peer.restartIce();
@@ -1182,34 +700,32 @@ async function startRTC(peerName, asInitiator) {
     }
   };
 
-  // FIX #5: 15-second timeout on connecting state
-  // If stuck in 'checking' longer than 15s, something is wrong.
-  let _connectTimeout = setTimeout(() => {
+  // Connection state
+  let connectTimeout = setTimeout(() => {
     if (peer && peer.connectionState !== 'connected') {
-      console.warn('[RTC] Connect timeout — giving up.');
-      toast('Could not connect. Please try again.', 'error');
+      showError('Connection Failed',
+        'Could not establish a connection. Check your network and try again.', true);
       cleanupCall();
-      show('s-home');
     }
   }, 15000);
 
-  // FIX #6: 'disconnected' shows Reconnecting UI, only 'failed' ends call
   peer.onconnectionstatechange = () => {
     const st = peer.connectionState;
     console.log('[RTC] State:', st);
     if (st === 'connected') {
-      clearTimeout(_connectTimeout);
+      clearTimeout(connectTimeout);
       onConnected();
     }
     if (st === 'disconnected') {
-      // Temporary — show reconnecting UI but don't hang up
-      document.getElementById('call-state').textContent = 'Reconnecting…';
+      document.getElementById('call-status').textContent = 'Reconnecting…';
       document.getElementById('call-timer').style.background = 'var(--yellow)';
       document.getElementById('wave').classList.remove('on');
     }
     if (st === 'failed') {
-      clearTimeout(_connectTimeout);
-      onDisconnected();
+      clearTimeout(connectTimeout);
+      showError('Connection Lost',
+        'The call dropped. The other person may have lost connectivity.', true);
+      cleanupCall();
     }
   };
 
@@ -1221,136 +737,55 @@ async function startRTC(peerName, asInitiator) {
     startAnalysis(streams[0]);
   };
 
+  // Initiator sends offer
   if (asInitiator) {
-    show('s-call');
-    document.getElementById('call-state').textContent = 'Connecting…';
     try {
       let offer = await peer.createOffer({ offerToReceiveAudio: true });
-      offer     = { type: offer.type, sdp: opusMunge(offer.sdp) };
+      offer = { type: offer.type, sdp: opusMunge(offer.sdp) };
       await peer.setLocalDescription(offer);
-      sock.emit('rtc-offer', { to: peerName, sdp: peer.localDescription });
+      sock.emit('rtc-offer', { sdp: peer.localDescription });
     } catch (e) { console.error('[RTC] createOffer:', e); }
   }
 }
 
-// FIX #9: Safari-safe Opus SDP munge.
-// Safari formats a=fmtp differently and sometimes omits it.
-// We search for the Opus payload type first, then apply params.
-// If no a=fmtp line exists for Opus, we insert one.
-function opusMunge(sdp) {
-  // Find Opus payload type
-  const rtpmapMatch = sdp.match(/a=rtpmap:(\d+) opus\/48000/i);
-  if (!rtpmapMatch) return sdp; // no Opus found — return unchanged
-  const pt = rtpmapMatch[1];
-
-  const opusParams = 'maxaveragebitrate=48000;stereo=0;useinbandfec=1;usedtx=0';
-  const fmtpRe    = new RegExp(`a=fmtp:${pt} (.*)`);
-
-  if (fmtpRe.test(sdp)) {
-    // Replace existing fmtp line — strip conflicting params and add ours
-    return sdp.replace(fmtpRe, (_, params) => {
-      const cleaned = params.split(';')
-        .filter(p => !/(maxaveragebitrate|stereo|useinbandfec|usedtx|cbr)/i.test(p.trim()))
-        .filter(Boolean)
-        .join(';');
-      return `a=fmtp:${pt} ${cleaned ? cleaned + ';' : ''}${opusParams}`;
-    });
-  } else {
-    // No existing fmtp for Opus (Safari) — insert one after the rtpmap line
-    return sdp.replace(
-      new RegExp(`(a=rtpmap:${pt} opus[^\\n]*\\n)`),
-      `$1a=fmtp:${pt} ${opusParams}\n`
-    );
+async function flushIceBuffer() {
+  for (const c of iceBuffer) {
+    try { await peer.addIceCandidate(new RTCIceCandidate(c)); } catch (_) {}
   }
+  iceBuffer = [];
 }
 
+/* ══ SDP MUNGE — Safari safe ═════════════════════════════════════════════════ */
+function opusMunge(sdp) {
+  const match = sdp.match(/a=rtpmap:(\d+) opus\/48000/i);
+  if (!match) return sdp;
+  const pt     = match[1];
+  const params = 'maxaveragebitrate=48000;stereo=0;useinbandfec=1;usedtx=0';
+  const fmtpRe = new RegExp(`a=fmtp:${pt} (.*)`);
+  if (fmtpRe.test(sdp)) {
+    return sdp.replace(fmtpRe, (_, existing) => {
+      const cleaned = existing.split(';')
+        .filter(p => !/(maxaveragebitrate|stereo|useinbandfec|usedtx|cbr)/i.test(p.trim()))
+        .filter(Boolean).join(';');
+      return `a=fmtp:${pt} ${cleaned ? cleaned + ';' : ''}${params}`;
+    });
+  }
+  // Safari: no existing fmtp — insert one
+  return sdp.replace(
+    new RegExp(`(a=rtpmap:${pt} opus[^\\n]*\\n)`),
+    `$1a=fmtp:${pt} ${params}\n`
+  );
+}
+
+/* ══ CONNECTED ═══════════════════════════════════════════════════════════════ */
 function onConnected() {
-  document.getElementById('call-state').textContent = 'Connected';
-  // FIX #6: Reset timer pill color in case it went yellow during reconnect
+  document.getElementById('call-status').textContent = 'Connected';
+  document.getElementById('call-sub').textContent    = '';
   document.getElementById('call-timer').style.background = 'var(--green)';
   document.getElementById('call-timer').classList.add('on');
   document.getElementById('wave').classList.add('on');
   startTimer();
-  startQuality();
-}
-
-function onDisconnected() {
-  toast('Connection lost.', 'error');
-  cleanupCall();
-  show('s-home');
-}
-
-/* Real-time TURN usage — only counts bytes when relay is active */
-let _statsTimer = null;
-
-function startQuality() {
-  _statsTimer = setInterval(pollQuality, 2000);
-  pollQuality();
-}
-
-function stopQuality() {
-  clearInterval(_statsTimer); _statsTimer = null;
-  document.getElementById('quality').classList.remove('on');
-  document.getElementById('q-turn-usage').textContent = '';
-}
-
-async function pollQuality() {
-  if (!peer) return;
-  try {
-    const stats = await peer.getStats();
-
-    let localType  = null, remoteType = null;
-    let usingRelay = false;
-    let audioBytesRx = 0, audioBytesTx = 0;
-
-    stats.forEach(r => {
-      // Active candidate pair — tells us P2P or TURN
-      if (r.type === 'candidate-pair' && r.nominated && r.state === 'succeeded') {
-        const local  = stats.get(r.localCandidateId);
-        const remote = stats.get(r.remoteCandidateId);
-        localType  = local  ? local.candidateType  : null;
-        remoteType = remote ? remote.candidateType : null;
-      }
-      // Actual audio bytes only — closer to what TURN counts
-      if (r.type === 'inbound-rtp'  && r.kind === 'audio') audioBytesRx = r.bytesReceived || 0;
-      if (r.type === 'outbound-rtp' && r.kind === 'audio') audioBytesTx = r.bytesSent     || 0;
-    });
-
-    usingRelay = localType === 'relay' || remoteType === 'relay';
-
-    // ─ Connection label ─
-    const dot  = document.getElementById('q-dot');
-    const text = document.getElementById('q-text');
-    if (usingRelay) {
-      const who = localType === 'relay' && remoteType === 'relay' ? 'Both via TURN'
-                : localType === 'relay' ? 'You via TURN' : 'Them via TURN';
-      dot.className    = 'q-dot relay';
-      text.textContent = who;
-    } else if (localType) {
-      dot.className    = 'q-dot';
-      text.textContent = 'Direct P2P';
-    }
-    document.getElementById('quality').classList.add('on');
-
-    // ─ TURN usage ─
-    const usageEl = document.getElementById('q-turn-usage');
-    if (usingRelay) {
-      // audioBytesRx = what we received via TURN (their audio → Cloudflare → us)
-      // audioBytesTx = what we sent that may go via TURN (our audio → Cloudflare → them)
-      // These are RTP-layer bytes. Cloudflare counts UDP packets so actual
-      // dashboard numbers will be ~15-20% lower. Cloudflare dashboard is ground truth.
-      const totalAudioBytes = audioBytesRx + audioBytesTx;
-      usageEl.textContent = '· ~' + fmtBytes(totalAudioBytes) + ' RTP (Cloudflare ~15% less)';
-    } else {
-      usageEl.textContent = '';
-    }
-  } catch (_) {}
-}
-
-function fmtBytes(b) {
-  if (b < 1024)          return b + ' B';
-  if (b < 1024 * 1024)   return (b / 1024).toFixed(1) + ' KB';
-  return (b / (1024 * 1024)).toFixed(2) + ' MB';
+  startStats();
 }
 
 /* ══ CONTROLS ════════════════════════════════════════════════════════════════ */
@@ -1358,34 +793,30 @@ document.getElementById('mute-btn').addEventListener('click', () => {
   if (!localStream) return;
   isMuted = !isMuted;
   localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
-  const circle = document.getElementById('mute-circle');
-  const label  = document.getElementById('mute-label');
-  circle.className = 'ctrl-circle' + (isMuted ? ' muted' : '');
-  label.textContent = isMuted ? 'Unmute' : 'Mute';
+  document.getElementById('mute-circle').className = 'ctrl-circle' + (isMuted ? ' muted' : '');
+  document.getElementById('mute-label').textContent = isMuted ? 'Unmute' : 'Mute';
 });
 
 document.getElementById('speaker-btn').addEventListener('click', () => {
   isSpeaker = !isSpeaker;
-  document.getElementById('speaker-circle').className =
-    'ctrl-circle' + (isSpeaker ? ' active' : '');
+  document.getElementById('speaker-circle').className = 'ctrl-circle' + (isSpeaker ? ' active' : '');
   toast(isSpeaker ? 'Speaker on' : 'Speaker off');
 });
 
-document.getElementById('end-btn').addEventListener('click', hangup);
-
-function hangup() {
-  if (remoteUser) sock.emit('call-end', { to: remoteUser });
+document.getElementById('end-btn').addEventListener('click', () => {
+  if (sock) sock.emit('leave-room');
   cleanupCall();
-  show('s-home');
-}
+  document.getElementById('wait-label').textContent = 'Call ended — waiting for peer…';
+  show('s-wait');
+  if (sock && sock.connected) sock.emit('join-room', { roomId: ROOM_ID });
+});
 
-/* ══ CLEANUP ══════════════════════════════════════════════════════════════════ */
+/* ══ CLEANUP ═════════════════════════════════════════════════════════════════ */
 function cleanupCall() {
-  stopTimer();
-  stopAnalysis();
-
+  stopTimer(); stopStats(); stopAnalysis();
   if (peer) {
-    peer.ontrack = peer.onicecandidate = peer.onconnectionstatechange = null;
+    peer.ontrack = peer.onicecandidate =
+    peer.onconnectionstatechange = peer.oniceconnectionstatechange = null;
     try { peer.close(); } catch (_) {}
     peer = null;
   }
@@ -1394,75 +825,112 @@ function cleanupCall() {
     localStream = null;
   }
   document.getElementById('remote-audio').srcObject = null;
-
-  // Reset UI state
-  isMuted = false; isSpeaker = false;
-  remoteUser = null; pendingCallId = null; iceBuffer = [];
-
+  isMuted = false; isSpeaker = false; iceBuffer = [];
   document.getElementById('mute-circle').className  = 'ctrl-circle';
   document.getElementById('mute-label').textContent = 'Mute';
   document.getElementById('speaker-circle').className = 'ctrl-circle';
-  document.getElementById('wave').classList.remove('on', 'live');
+  document.getElementById('wave').classList.remove('on','live');
+  document.getElementById('quality').classList.remove('on');
   document.getElementById('call-timer').classList.remove('on');
   document.getElementById('speak-ring').classList.remove('on');
-  stopQuality();
+  document.getElementById('call-timer').textContent = '0:00';
+  document.getElementById('call-timer').style.background = 'var(--green)';
 }
 
-/* ══ TIMER ════════════════════════════════════════════════════════════════════ */
+/* ══ TIMER ═══════════════════════════════════════════════════════════════════ */
 function startTimer() {
   timerSecs = 0;
   const el  = document.getElementById('call-timer');
   timerID   = setInterval(() => {
     timerSecs++;
-    const m = Math.floor(timerSecs / 60);
-    const s = String(timerSecs % 60).padStart(2, '0');
-    el.textContent = `${m}:${s}`;
+    el.textContent = `${Math.floor(timerSecs/60)}:${String(timerSecs%60).padStart(2,'0')}`;
   }, 1000);
 }
-function stopTimer() {
-  clearInterval(timerID);
-  timerID = null; timerSecs = 0;
-  document.getElementById('call-timer').textContent = '0:00';
+function stopTimer() { clearInterval(timerID); timerID = null; timerSecs = 0; }
+
+/* ══ REAL-TIME STATS (TURN usage) ════════════════════════════════════════════ */
+function startStats() {
+  document.getElementById('quality').classList.add('on');
+  statsTimer = setInterval(pollStats, 2000);
+  pollStats();
+}
+function stopStats() {
+  clearInterval(statsTimer); statsTimer = null;
+  document.getElementById('quality').classList.remove('on');
+  document.getElementById('q-turn-usage').textContent = '';
 }
 
-/* ══ AUDIO ANALYSIS (remote speaking indicator) ══════════════════════════════ */
-function startAnalysis(remoteStream) {
+async function pollStats() {
+  if (!peer) return;
+  try {
+    const stats = await peer.getStats();
+    let localType = null, remoteType = null;
+    let audioRx = 0, audioTx = 0;
+
+    stats.forEach(r => {
+      if (r.type === 'candidate-pair' && r.nominated && r.state === 'succeeded') {
+        const lc = stats.get(r.localCandidateId);
+        const rc = stats.get(r.remoteCandidateId);
+        localType  = lc ? lc.candidateType : null;
+        remoteType = rc ? rc.candidateType : null;
+      }
+      if (r.type === 'inbound-rtp'  && r.kind === 'audio') audioRx = r.bytesReceived || 0;
+      if (r.type === 'outbound-rtp' && r.kind === 'audio') audioTx = r.bytesSent     || 0;
+    });
+
+    const relay = localType === 'relay' || remoteType === 'relay';
+    const dot   = document.getElementById('q-dot');
+    const text  = document.getElementById('q-text');
+    const usage = document.getElementById('q-turn-usage');
+
+    if (localType) {
+      if (relay) {
+        const who = localType === 'relay' && remoteType === 'relay' ? 'Both via TURN'
+                  : localType  === 'relay' ? 'You via TURN' : 'Them via TURN';
+        dot.className    = 'q-dot relay';
+        text.textContent = who;
+        usage.textContent = '· ~' + fmtBytes(audioRx + audioTx) + ' via TURN';
+      } else {
+        dot.className    = 'q-dot';
+        text.textContent = 'Direct P2P';
+        usage.textContent = '';
+      }
+    }
+  } catch (_) {}
+}
+
+function fmtBytes(b) {
+  if (b < 1024)        return b + ' B';
+  if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+  return (b / (1024 * 1024)).toFixed(2) + ' MB';
+}
+
+/* ══ AUDIO ANALYSIS (speaking indicator) ═════════════════════════════════════ */
+function startAnalysis(stream) {
   try {
     audioCtx  = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
-    const src = audioCtx.createMediaStreamSource(remoteStream);
+    const src = audioCtx.createMediaStreamSource(stream);
     analyser  = audioCtx.createAnalyser();
-    analyser.fftSize             = 256;
-    analyser.smoothingTimeConstant = 0.72;
+    analyser.fftSize = 256; analyser.smoothingTimeConstant = 0.72;
     src.connect(analyser);
-
     const data  = new Uint8Array(analyser.frequencyBinCount);
     const wave  = document.getElementById('wave');
     const ring  = document.getElementById('speak-ring');
     const bars  = wave.querySelectorAll('.wbar');
-    const THRESH = 14;
     let speaking = false, silT = null;
-
     function tick() {
       rafID = requestAnimationFrame(tick);
       analyser.getByteFrequencyData(data);
       const vol = data.reduce((a, b) => a + b, 0) / data.length;
-
-      if (vol > THRESH) {
+      if (vol > 14) {
         clearTimeout(silT);
-        if (!speaking) {
-          speaking = true;
-          wave.classList.add('live');
-          ring.classList.add('on');
-        }
+        if (!speaking) { speaking = true; wave.classList.add('live'); ring.classList.add('on'); }
         bars.forEach((b, i) => {
-          const idx = Math.floor((i / bars.length) * data.length * 0.38);
-          b.style.height = (4 + Math.round((data[idx] / 255) * 18)) + 'px';
+          b.style.height = (4 + Math.round((data[Math.floor(i/bars.length*data.length*.38)]/255)*18)) + 'px';
         });
       } else if (speaking) {
         silT = setTimeout(() => {
-          speaking = false;
-          wave.classList.remove('live');
-          ring.classList.remove('on');
+          speaking = false; wave.classList.remove('live'); ring.classList.remove('on');
           bars.forEach(b => b.style.height = '4px');
         }, 420);
       }
@@ -1477,11 +945,12 @@ function stopAnalysis() {
   analyser = null;
 }
 
-/* ══ CLEANUP ON UNLOAD ════════════════════════════════════════════════════════ */
+/* ══ INIT ═════════════════════════════════════════════════════════════════════ */
 window.addEventListener('beforeunload', () => {
-  if (remoteUser && sock) sock.emit('call-end', { to: remoteUser });
-  if (sock) sock.disconnect();
+  if (sock) sock.emit('leave-room');
 });
+
+connect();
 </script>
 </body>
 </html>
